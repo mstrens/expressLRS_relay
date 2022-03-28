@@ -1,5 +1,7 @@
 #pragma once
 
+#include <inttypes.h>
+
 #define CRSF_ADDRESS_CRSF_RECEIVER 0xEC // address of the receiver (used for telemetry)
 
 typedef enum
@@ -35,14 +37,20 @@ typedef enum
 } crsf_frame_type_e;
 
 
-#define CRSF_FRAME_RC_PAYLOAD_SIZE 22  // to change ????
-#define CRSF_FRAME_GPS_PAYLOAD_SIZE 8  // to change
+#define CRSF_FRAME_RC_PAYLOAD_SIZE 22  
+#define CRSF_FRAME_GPS_PAYLOAD_SIZE 15 
 #define CRSF_FRAME_VARIO_PAYLOAD_SIZE 2 
 #define CRSF_FRAME_BATTERY_SENSOR_PAYLOAD_SIZE 8
-#define CRSF_FRAME_ATTITUDE_PAYLOAD_SIZE 8  // to change
-#define CRSF_FRAME_FLIGHT_MODE_PAYLOAD_SIZE 8  // to change
+#define CRSF_FRAME_ATTITUDE_PAYLOAD_SIZE 6 
+#define CRSF_FRAME_FLIGHT_MODE_PAYLOAD_SIZE 8  // to change?
+#define CRSF_FRAME_LINK_STATISTICS_PAYLOAD_SIZE 10
 
 #define CRSF_ADDRESS_TLM 0xC8 // !!!!!!!!!! to change
+
+enum CRSF_MODE {
+    RECEIVING = 0,
+    SENDING
+};
 
 typedef enum
 {
@@ -108,11 +116,48 @@ struct attitudeFrameStruct
     uint8_t crc;
 } __attribute__((packed)) ;
 
+/*
+ * 0x14 Link statistics
+ * Payload:
+ *
+ * uint8_t Uplink RSSI Ant. 1 ( dBm * -1 )
+ * uint8_t Uplink RSSI Ant. 2 ( dBm * -1 )
+ * uint8_t Uplink Package success rate / Link quality ( % )
+ * int8_t Uplink SNR ( db )
+ * uint8_t Diversity active antenna ( enum ant. 1 = 0, ant. 2 )
+ * uint8_t RF Mode ( enum 4fps = 0 , 50fps, 150hz)
+ * uint8_t Uplink TX Power ( enum 0mW = 0, 10mW, 25 mW, 100 mW, 500 mW, 1000 mW, 2000mW )
+ * uint8_t Downlink RSSI ( dBm * -1 )
+ * uint8_t Downlink package success rate / Link quality ( % )
+ * int8_t Downlink SNR ( db )
+ * Uplink is the connection from the ground to the UAV and downlink the opposite direction.
+ */
+
+struct linkstatisticsFrameStruct
+{
+    uint8_t  device_addr; // should be 0xEC (=receiver)
+    uint8_t  frame_size;  // counts size after this byte, so it must be the payload size + 2 (type and crc)
+    uint8_t  type;        // from crsf_frame_type_e
+    uint8_t uplink_RSSI_1;
+    uint8_t uplink_RSSI_2;
+    uint8_t uplink_Link_quality;
+    int8_t uplink_SNR;
+    uint8_t active_antenna;
+    uint8_t rf_Mode;
+    uint8_t uplink_TX_Power;
+    uint8_t downlink_RSSI;
+    uint8_t downlink_Link_quality;
+    int8_t downlink_SNR;
+    uint8_t crc;
+}__attribute__((packed)) ;
+
+
 union {
  gpsFrameStruct gpsFrame;
  voltageFrameStruct voltageFrame;
  varioFrameStruct varioFrame;
  attitudeFrameStruct attitudeFrame;
+ linkstatisticsFrameStruct linkstatisticsFrame;
  uint8_t tlmBuffer[50];
 } tlmFrame ;
 
@@ -127,6 +172,15 @@ struct rcFrameStruct
 
 //void setup_DMA_PIO(); 
 void setupCRSF();
-void sendCRSFRcFrame();
+void sendCrsfRcFrame();
 void handleTlmIn();
 void storeTlmFrame();
+void crsfPioRxHandlerIrq();
+//void processCrsfRxQueue();
+//void fillCrsfBufferWithRcChannels();
+void fillCrsfTxBuffer(uint8_t c);
+void fillCrsfTxBuffer(uint8_t * bufferFrom , uint8_t length);
+void crsfPioTxEmptyHandlerIrq();
+void clearCrsfRxQueue();
+
+        

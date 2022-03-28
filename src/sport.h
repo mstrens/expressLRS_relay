@@ -2,6 +2,7 @@
 
 #include "Arduino.h"
 
+#define SPORT_TYPES_MAX 24
 struct field {
     int32_t value;
     bool available;
@@ -71,6 +72,18 @@ struct field {
 #define ADC2_ID                 0xf103
 #define BATT_ID                 0xf104
 #define SWR_ID                  0xf105  // please do not use this code because it is already used by the receiver
+#define UPLINK_RSSI_1_ID        0x0c00  // to check if this range is valid
+#define UPLINK_RSSI_2_ID        0x0c01
+#define UPLINK_LINK_QUALITY_ID  0x0c02
+#define UPLINK_SNR_ID           0x0c03
+#define ACTIVE_ANTENNA_ID       0x0c04
+#define RF_MODE_ID              0x0c05
+#define UPLINK_TX_POWER_ID      0x0c06
+#define DOWNLINK_RSSI_ID        0x0c07
+#define DOWNLINK_LINK_QUALITY_ID  0x0c08
+#define DOWNLINK_SNR_ID           0x0c09
+
+
 
 enum fieldIdx {
       LATITUDE =0,
@@ -86,12 +99,14 @@ enum fieldIdx {
       VSPEED,
       PITCH,
       ROLL,
-      YAW
+      YAW ,
+    UPLINK_RSSI_1 , UPLINK_RSSI_2 , UPLINK_LINK_QUALITY , UPLINK_SNR , ACTIVE_ANTENNA, RF_MODE ,
+    UPLINK_TX_POWER , DOWNLINK_RSSI , DOWNLINK_LINK_QUALITY , DOWNLINK_SNR
 };
 
 void setupSport(void);
 
-void pioRxHandlerIrq() ;   // when a byte is received on the Sport, read the pio Sport fifo and push the data to a queue (to be processed in the main loop)
+void sportPioRxHandlerIrq() ;   // when a byte is received on the Sport, read the pio Sport fifo and push the data to a queue (to be processed in the main loop)
 
 void handleSportRxTx(void);
 void sendNextSportFrame() ; // search for the next data to be sent

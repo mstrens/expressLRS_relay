@@ -1,5 +1,5 @@
 
-.program uart_tx
+.program crsf_uart_tx
 .side_set 1 opt
 
 ; An 8n1 UART transmit program.
@@ -10,19 +10,35 @@
 bitloop:                   ; This loop will run 8 times (8n1 UART)
     out pins, 1            ; Shift 1 bit from OSR to the first OUT pin
     jmp x-- bitloop   [6]  ; Each loop iteration is 8 cycles.
-
-
+    set x , 7   side 1     ; preload bit counter
+    mov y , !STATUS    [4]  ; Assert stop bit and y becomes all 1 when TX fifo is less than 0 (value defined in setup)
+    jmp !y  setirq         ; When fifo is empty do a special process (irq) 
+    pull               [2] ; get next byte from fifo
+    jmp bitloop side 0 [7] ; assert start bit for 8 clocks 
+setirq:
+    irq 0                  ; when fifo is empty, fire an irq 
+    
 % c-sdk {
 #include "hardware/clocks.h"
-// here the code from elrsoXs for Tx
-static inline void uart_tx_program_init(PIO pio, uint sm, uint offset, uint pin_tx, uint baud) {
+#include "stdio.h"  // used by printf
+
+#define DEBUG_TIMING_CRSF  // let check when pio switch from receiving to sending mode. 
+#define TEST_PIN 3
+
+// here the code from elrs for Tx
+static inline void crsf_uart_tx_program_init(PIO pio, uint sm, uint offset, uint pin_tx, uint baud, bool invert) {
     // Tell PIO to initially drive output-high on the selected pin, then map PIO
     // onto that pin with the IO muxes.
     //pio_sm_set_pins_with_mask(pio, sm, 1u << pin_tx, 1u << pin_tx);
     //pio_sm_set_pindirs_with_mask(pio, sm, 1u << pin_tx, 1u << pin_tx);
     pio_gpio_init(pio, pin_tx);
-    gpio_set_outover(pin_tx,  GPIO_OVERRIDE_INVERT) ; // added by ms to manage inverted UART from Sport
-    pio_sm_config c = uart_tx_program_get_default_config(offset);
+    if ( invert ) {
+        gpio_set_outover(pin_tx,  GPIO_OVERRIDE_INVERT) ; // added by ms to manage inverted UART from Sport
+        gpio_pull_down(pin_tx); // changed by MS
+    } else {
+        gpio_pull_up(pin_tx); // changed by MS
+    }    
+    pio_sm_config c = crsf_uart_tx_program_get_default_config(offset);
 
     // OUT shifts to right, no autopull
     sm_config_set_out_shift(&c, true, false, 32);
@@ -36,32 +52,47 @@ static inline void uart_tx_program_init(PIO pio, uint sm, uint offset, uint pin_
     // We only need TX, so get an 8-deep FIFO!
     sm_config_set_fifo_join(&c, PIO_FIFO_JOIN_TX);
 
+    // we use a move y , !STATUS instruction to know when the TXFIFO is empty, so we have to set it up in the configured
+    sm_config_set_mov_status (&c,  STATUS_TX_LESSTHAN , 1 ) ; // when TX fifo is less than 0(n), y will become all-ones, otherwise all-zeroes
+
     // SM transmits 1 bit per 8 execution cycles.
     float div = (float)clock_get_hz(clk_sys) / (8 * baud);
     sm_config_set_clkdiv(&c, div);
 
     pio_sm_init(pio, sm, offset, &c);
+    pio_set_irq1_source_enabled(pio , pis_interrupt0 , true) ; // enable an interrupt0 on line IRQ1 when pio fire it because fifo is empty
     //    pio_sm_set_enabled(pio, sm, true); // sm will be enable only on request
+#ifdef DEBUG_TIMING_CRSF
+    // set test pin to check when pio mode change from sending to receiving
+    gpio_init(TEST_PIN);
+    gpio_set_dir(TEST_PIN, GPIO_OUT); // set pin as output  
+#endif
 }
 
-static inline void uart_tx_program_stop(PIO pio, uint sm, uint offset, uint pin_tx, uint baud) {
+static inline void crsf_uart_tx_program_stop(PIO pio, uint sm, uint pin_tx) {
+    
     pio_sm_set_enabled(pio, sm, false); // disabled
     pio_sm_set_pindirs_with_mask(pio, sm, 0 , 1u << pin_tx); // put pin Tx as input
     // normally other parameters are already configured by init
-    
+#ifdef DEBUG_TIMING_CRSF
+    gpio_put(TEST_PIN, 0);
+#endif
 }
 
 
-static inline void uart_tx_program_start(PIO pio, uint sm, uint offset, uint pin_tx, uint baud) {
+static inline void crsf_uart_tx_program_start(PIO pio, uint sm, uint pin_tx , bool invert ) {
     pio_sm_set_pins_with_mask(pio, sm, 1u << pin_tx, 1u << pin_tx);  // put pin TX on  high level
     pio_sm_set_pindirs_with_mask(pio, sm, 1u << pin_tx, 1u << pin_tx); // put pin Tx as output
-    gpio_set_outover(pin_tx,  GPIO_OVERRIDE_INVERT) ; // added by ms to manage inverted UART from Sport
+    if (invert) gpio_set_outover(pin_tx,  GPIO_OVERRIDE_INVERT) ; // added by ms to manage inverted UART from Sport
     // normally other parameters are already configured by init
     pio_sm_restart (pio, sm); // to test if we need an enable after this
     pio_sm_set_enabled(pio, sm, true);
+#ifdef DEBUG_TIMING_CRSF
+    gpio_put(TEST_PIN, 1);
+#endif    
 }
 
-
+/*
 
 static inline void uart_tx_program_putc(PIO pio, uint sm, char c) {
     pio_sm_put_blocking(pio, sm, (uint32_t)c);
@@ -71,11 +102,12 @@ static inline void uart_tx_program_puts(PIO pio, uint sm, const char *s) {
     while (*s)
         uart_tx_program_putc(pio, sm, *s++);
 }
+*/ 
 
 %}
 
 
-.program uart_rx
+.program crsf_uart_rx
 
 ; Slightly more fleshed-out 8n1 UART receiver which handles framing errors and
 ; break conditions more gracefully.
@@ -100,17 +132,18 @@ good_stop:              ; No delay before returning to start; a little slack is
 % c-sdk {
 #include "hardware/gpio.h"
 #include "hardware/clocks.h"
-static inline void uart_rx_program_init(PIO pio, uint sm, uint offset, uint pin_rx, uint baud) {
+static inline void crsf_uart_rx_program_init(PIO pio, uint sm, uint offset, uint pin_rx, uint baud , bool invert) {
     //pio_sm_set_pins_with_mask(pio, sm, 1u << pin_tx, 1u << pin_tx); // was in Tx program but is normally not required for Rx
     pio_sm_set_pindirs_with_mask(pio, sm, 0 , 1u << pin_rx); // set pin as input
     //pio_sm_set_consecutive_pindirs(pio, sm, pin, 1, false); // remove by ms
     pio_gpio_init(pio, pin_rx);
-    gpio_set_inover(pin_rx,  GPIO_OVERRIDE_INVERT) ; // added by ms to manage inverted UART from Sport
-    gpio_pull_down(pin_rx); // changed by MS
-    
-    //gpio_pull_up(pin);
-
-    pio_sm_config c = uart_rx_program_get_default_config(offset);
+    if (invert) {
+        gpio_set_inover(pin_rx,  GPIO_OVERRIDE_INVERT) ; // added by ms to manage inverted UART from Sport
+        gpio_pull_down(pin_rx); // changed by MS
+    } else {
+        gpio_pull_up(pin_rx); // changed by MS
+    }    
+    pio_sm_config c = crsf_uart_rx_program_get_default_config(offset);
     sm_config_set_in_pins(&c, pin_rx); // for WAIT, IN
     sm_config_set_jmp_pin(&c, pin_rx); // for JMP
     // Shift to right, autopush disabled
@@ -123,19 +156,25 @@ static inline void uart_rx_program_init(PIO pio, uint sm, uint offset, uint pin_
     
     pio_sm_init(pio, sm, offset, &c);
     pio_set_irq0_source_enabled(pio ,  pis_sm1_rx_fifo_not_empty , true ); // added by ms to get an irq int0 from pio
-    pio_sm_set_enabled(pio, sm, true);
+    //pio_sm_set_enabled(pio, sm, true);
 }
-static inline void uart_rx_program_stop(PIO pio, uint sm, uint offset, uint pin_rx, uint baud) {
+static inline void crsf_uart_rx_program_stop(PIO pio, uint sm, uint pin_rx) {
     pio_sm_set_enabled(pio, sm, false); // disable sm.    
 }
 
-static inline void uart_rx_program_restart(PIO pio, uint sm, uint offset, uint pin_rx, uint baud) {
+static inline void crsf_uart_rx_program_restart(PIO pio, uint sm, uint pin_rx , bool invert) {
     pio_sm_set_pindirs_with_mask(pio, sm, 0 , 1u << pin_rx); // set pin as input
+    if (invert) {
+        gpio_set_inover(pin_rx,  GPIO_OVERRIDE_INVERT) ; // added by ms to manage inverted UART from Sport
+        gpio_pull_down(pin_rx); // changed by MS
+    } else {
+        gpio_pull_up(pin_rx); // changed by MS
+    }    
     pio_sm_restart (pio, sm); // to test if we need an enable after this
     pio_sm_set_enabled(pio, sm, true);
 }    
 /*
-static inline char uart_rx_program_getc(PIO pio, uint sm) {
+static inline char crsf_uart_rx_program_getc(PIO pio, uint sm) {
     // 8-bit read from the uppermost byte of the FIFO, as data is left-justified
     io_rw_8 *rxfifo_shift = (io_rw_8*)&pio->rxf[sm] + 3;
     while (pio_sm_is_rx_fifo_empty(pio, sm))
