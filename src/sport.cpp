@@ -10,12 +10,17 @@
 #include "hardware/dma.h"
 #include "sport.h"
 
+// to do: 
+// if we can reply to several device id, we should keep a table with the last field index used for this deviceid
+// when we get a polling for one device id, we should use this table to search from this last field index 
+
+
 // one pio and 2 state machines are used to manage the sport in halfduplex
 // one state machine (sm) handle the TX and the second the RX
 // to receive data, the sm is initialised and use an IRQ handler when rx fifo is not empty
 //    in irq, this byte is store in a Rx queue
 //    This queue is read in main loop
-//    When a byte is received after a 7E, then we stop the sm that receive
+//    When a byte is received after a 7E, then we stop the sm that receive (it means frsky made a polling)
 //    We fill a buffer with the data
 //    We set up a dma to transfer the data to the TX fifo of the Tx state machine
 //    We also set up a timestamp to stop after some msec the Tx state machine and start again the Rx one   
@@ -23,7 +28,7 @@
 
 #define SPORT_PIO_RX_PIN 8  // pin being used by the UART pio
 #define SPORTSYNCREQUEST 0x7E
-#define SPORTDEVICEID 0xE4
+#define SPORTDEVICEID    0xE4
 
 queue_t sportRxQueue ;
 
@@ -45,8 +50,6 @@ uint32_t restoreSportPioToReceiveMillis = 0; // when 0, the pio is normally in r
 
 
 field fields[SPORT_TYPES_MAX];  // list of all telemetry fields and parameters used by Sport
-
-
 
 
 void setupSport() {
@@ -85,7 +88,7 @@ void setupSport() {
 
 // set up the DMA but do not yet start it to send data to Sport
 // Configure a channel to write the same byte (8 bits) repeatedly to PIO0
-// SM0's TX FIFO, paced by the data request signal from that peripheral.
+// SM0's TX FIFO, placed by the data request signal from that peripheral.
     sport_dma_chan = dma_claim_unused_channel(true);
     sportDmaConfig = dma_channel_get_default_config(sport_dma_chan);
     channel_config_set_read_increment(&sportDmaConfig, true);
@@ -104,7 +107,6 @@ void setupSport() {
     sportOffsetTx = pio_add_program(sportPio, &sport_uart_tx_program);
     sport_uart_tx_program_init(sportPio, sportSmTx, sportOffsetTx, SPORT_PIO_RX_PIN, 57600 , true); // we use the same pin and baud rate for tx and rx, true means thet UART is inverted 
 
-
 // set an irq on pio to handle a received byte
     irq_set_exclusive_handler( PIO0_IRQ_0 , sportPioRxHandlerIrq) ;
     irq_set_enabled (PIO0_IRQ_0 , true) ;
@@ -113,7 +115,6 @@ void setupSport() {
     sportOffsetRx = pio_add_program(sportPio, &sport_uart_rx_program);
     sport_uart_rx_program_init(sportPio, sportSmRx, sportOffsetRx, SPORT_PIO_RX_PIN, 57600 , true);  
 }
-
 
 
 void sportPioRxHandlerIrq(){    // when a byte is received on the Sport, read the pio Sport fifo and push the data to a queue (to be processed in the main loop)
@@ -125,9 +126,6 @@ void sportPioRxHandlerIrq(){    // when a byte is received on the Sport, read th
     //sportRxMillis = millis();                    // save the timestamp.
   }
 }
-
-
-
 
 
 //void processNextSportRxByte( uint8_t c){
@@ -149,20 +147,24 @@ void handleSportRxTx(void){   // main loop : restore receiving mode , wait for t
     } else {                             // when we are in receive mode
         if (! queue_is_empty(&sportRxQueue)) {
             queue_try_remove (&sportRxQueue,&data);
-            if ( ( previous ==  SPORTSYNCREQUEST)  && (data == SPORTDEVICEID) ) sendNextSportFrame();
+            if ( ( previous ==  SPORTSYNCREQUEST)  &&  (data == SPORTDEVICEID)   ) sendNextSportFrame(data);
+            // we could use several device id ti increase the telemetry rate
+            //if ( ( previous ==  SPORTSYNCREQUEST)  && ( (data == DATA_ID_GPS) || 
+            //(data == DATA_ID_VARIO) || (data == DATA_ID_RPM) || (data == DATA_ID_FAS) || (data == DATA_ID_ACC) ) ) sendNextSportFrame(data);
             previous = data; 
             }
     }           
 }
 
-void sendNextSportFrame(){ // search for the next data to be sent
+
+void sendNextSportFrame(uint8_t data_id){ // search for the next data to be sent for this device ID
     static uint8_t last_sport_idx = 0 ;
     if ( dma_channel_is_busy(sport_dma_chan) )return ; // skip if the DMA is still sending data
     uint32_t _millis = millis();
     for (uint8_t i = 0 ; i< SPORT_TYPES_MAX ; i++ ){
          last_sport_idx++;
          if (last_sport_idx >= SPORT_TYPES_MAX) last_sport_idx = 0 ;
-         if ( (_millis >= fields[last_sport_idx].nextMillis) && (fields[last_sport_idx].available)) {
+         if ( (_millis >= fields[last_sport_idx].nextMillis) && (fields[last_sport_idx].available)  ) {
              sendOneSport(last_sport_idx);
              fields[last_sport_idx].available = false; // flag as sent
              fields[last_sport_idx].nextMillis = millis() + fields[last_sport_idx].interval;

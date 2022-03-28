@@ -9,10 +9,10 @@
 #include <tusb.h>
 #include <inttypes.h>
 
-//     CRSF uses pin 4 UART1 TX = Serial1
-//     CRSF uses pin 5 UART1 RX
+//     CRSF (Tx and RX) uses PIO1 and pin 7 ; for safety, insert a 1K resistor in serie on the wire to Frsky Sport
+
 //     SBUS uses pin 1 UART0 RX = Serial  
-//     SPORT (TX and RX) uses PIO and pin 8; for safety, insert a 1K resistor in serie on the wire to Frsky Sport
+//     SPORT (TX and RX) uses PIO0 and pin 8; for safety, insert a 1K resistor in serie on the wire to Frsky Sport
 
 void setup() {
   stdio_init_all();
@@ -22,11 +22,15 @@ void setup() {
   
   // setup UART for Sbus (100 kbaud, 8E2)...) (inverted)
   setupSbus(); 
-  // setup UART1 for CRSF at 400000 baud
-  setupCRSF(); 
-  // setup Sport uart (using pio, 2 sm, dma, irq, queue)
+
+  // setup crsf uart for CRSF at 400000 baud; use pio1, 2 sm (one for tx and one for rx), dma for sending , irq and queue for reading)
+  // the relay is master of crsf uart; it sent rc frame once every 4ms and between 2 frames, it read the telemetry on the same pin
+  setupCRSF();
+
+  // setup Sport uart (using pio0, 2 sm, dma, irq, queue)
+  // FRSKY is master; it sent a code for polling the different devices once pet 11 msec; only one device can reply 
   setupSport();
-  watchdog_enable(500, 1); // require an update once every 500 msec
+  watchdog_enable(500, 1); // require an update once every 500 msec; othsewise, it forces a reboot
 }
 
 void loop() {
