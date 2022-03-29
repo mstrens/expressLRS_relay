@@ -45,7 +45,7 @@ typedef enum
 #define CRSF_FRAME_FLIGHT_MODE_PAYLOAD_SIZE 8  // to change?
 #define CRSF_FRAME_LINK_STATISTICS_PAYLOAD_SIZE 10
 
-#define CRSF_ADDRESS_TLM 0xC8 // !!!!!!!!!! to change
+#define CRSF_ADDRESS_TLM 0xEA // this value has been seen using the logic analyser
 
 enum CRSF_MODE {
     RECEIVING = 0,

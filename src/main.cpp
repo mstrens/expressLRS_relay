@@ -10,9 +10,14 @@
 #include <inttypes.h>
 
 //     CRSF (Tx and RX) uses PIO1 and pin 7 ; for safety, insert a 1K resistor in serie on the wire to Frsky Sport
-
 //     SBUS uses pin 1 UART0 RX = Serial  
 //     SPORT (TX and RX) uses PIO0 and pin 8; for safety, insert a 1K resistor in serie on the wire to Frsky Sport
+//  the pinout of the ELRS Tx module is the folowing:
+//      - ???? not used
+//      - ???? not used 
+//      - battery VCC (5V-10V)
+//      - gnd
+//      - CRSF signal (is usually used by frsky for sport signal)
 
 void setup() {
   stdio_init_all();

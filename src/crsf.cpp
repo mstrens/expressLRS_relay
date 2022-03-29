@@ -11,8 +11,15 @@
 #include "sport.h"
 #include "stdio.h"  // used by printf
 
-
 #define CRSF_PIO_PIN 7  // pin being used by the UART pio for ELRS
+
+// When we look at the data exganged with openTX with a logic analyser, it seems that:
+// openTX send a frame with Rc channel once every 4msec (24 bytes at 400000 bauds = 24*25micro sec)
+// the eLRS module sent some frame back about 40/45 usec later with  an adress = EA
+// When the RX has no telemetry, there are at least 2 types of frame to openTx
+// one has a length = 0X0D and a type = 3A; it is sent every 0.2msec
+// the other has a length = 0X0C and a type = 0C (= link statistic); it is sent once every 0.32 sec
+// I expect that there are some others type (gps, vario, ...) 
 
 queue_t crsfRxQueue ; // queue to get the telemetry data from crsf (from an irq handler)
 
