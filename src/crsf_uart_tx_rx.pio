@@ -10,13 +10,23 @@
 bitloop:                   ; This loop will run 8 times (8n1 UART)
     out pins, 1            ; Shift 1 bit from OSR to the first OUT pin
     jmp x-- bitloop   [6]  ; Each loop iteration is 8 cycles.
-    set x , 7   side 1     ; preload bit counter
-    mov y , !STATUS    [4]  ; Assert stop bit and y becomes all 1 when TX fifo is less than 0 (value defined in setup)
-    jmp !y  setirq         ; When fifo is empty do a special process (irq) 
-    pull               [2] ; get next byte from fifo
-    jmp bitloop side 0 [7] ; assert start bit for 8 clocks 
-setirq:
-    irq 0                  ; when fifo is empty, fire an irq 
+
+
+
+
+
+;    pull       side 1 [7]  ; Assert stop bit, or stall with line in idle state
+;    set x, 7   side 0 [7]  ; Preload bit counter, assert start bit for 8 clocks
+;bitloop:                   ; This loop will run 8 times (8n1 UART)
+;    out pins, 1            ; Shift 1 bit from OSR to the first OUT pin
+;    jmp x-- bitloop   [6]  ; Each loop iteration is 8 cycles.
+;    set x , 7   side 1     ; preload bit counter
+;    mov y , !STATUS    [4]  ; Assert stop bit and y becomes all 1 when TX fifo is less than 0 (value defined in setup)
+;    jmp !y  setirq         ; When fifo is empty do a special process (irq) 
+;    pull               [2] ; get next byte from fifo
+;    jmp bitloop side 0 [7] ; assert start bit for 8 clocks 
+;setirq:
+;    irq 0                  ; when fifo is empty, fire an irq 
     
 % c-sdk {
 #include "hardware/clocks.h"
@@ -69,14 +79,11 @@ static inline void crsf_uart_tx_program_init(PIO pio, uint sm, uint offset, uint
 #endif
 }
 
-static inline void crsf_uart_tx_program_stop(PIO pio, uint sm, uint pin_tx) {
-    
+static inline void crsf_uart_tx_program_stop(PIO pio, uint sm, uint pin_tx) {    
     pio_sm_set_enabled(pio, sm, false); // disabled
-    pio_sm_set_pindirs_with_mask(pio, sm, 0 , 1u << pin_tx); // put pin Tx as input
+    pio_sm_set_pindirs_with_mask(pio, sm, 0u , 1u << pin_tx); // put pin Tx as input
     // normally other parameters are already configured by init
-#ifdef DEBUG_TIMING_CRSF
-    gpio_put(TEST_PIN, 0);
-#endif
+
 }
 
 
@@ -163,15 +170,19 @@ static inline void crsf_uart_rx_program_stop(PIO pio, uint sm, uint pin_rx) {
 }
 
 static inline void crsf_uart_rx_program_restart(PIO pio, uint sm, uint pin_rx , bool invert) {
-    pio_sm_set_pindirs_with_mask(pio, sm, 0 , 1u << pin_rx); // set pin as input
+    pio_sm_set_pindirs_with_mask(pio, sm, 0u , 1u << pin_rx); // set pin as input
     if (invert) {
         gpio_set_inover(pin_rx,  GPIO_OVERRIDE_INVERT) ; // added by ms to manage inverted UART from Sport
         gpio_pull_down(pin_rx); // changed by MS
     } else {
         gpio_pull_up(pin_rx); // changed by MS
-    }    
+    } 
+    pio_set_irq0_source_enabled(pio ,  pis_sm1_rx_fifo_not_empty , true ); 
     pio_sm_restart (pio, sm); // to test if we need an enable after this
     pio_sm_set_enabled(pio, sm, true);
+#ifdef DEBUG_TIMING_CRSF
+    gpio_put(TEST_PIN, 0);
+#endif
 }    
 /*
 static inline char crsf_uart_rx_program_getc(PIO pio, uint sm) {

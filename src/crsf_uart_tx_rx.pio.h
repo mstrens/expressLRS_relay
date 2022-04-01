@@ -11,7 +11,7 @@
 // ------------ //
 
 #define crsf_uart_tx_wrap_target 0
-#define crsf_uart_tx_wrap 9
+#define crsf_uart_tx_wrap 3
 
 static const uint16_t crsf_uart_tx_program_instructions[] = {
             //     .wrap_target
@@ -19,19 +19,13 @@ static const uint16_t crsf_uart_tx_program_instructions[] = {
     0xf727, //  1: set    x, 7            side 0 [7] 
     0x6001, //  2: out    pins, 1                    
     0x0642, //  3: jmp    x--, 2                 [6] 
-    0xf827, //  4: set    x, 7            side 1     
-    0xa44d, //  5: mov    y, !status             [4] 
-    0x0069, //  6: jmp    !y, 9                      
-    0x82a0, //  7: pull   block                  [2] 
-    0x1702, //  8: jmp    2               side 0 [7] 
-    0xc000, //  9: irq    nowait 0                   
             //     .wrap
 };
 
 #if !PICO_NO_HARDWARE
 static const struct pio_program crsf_uart_tx_program = {
     .instructions = crsf_uart_tx_program_instructions,
-    .length = 10,
+    .length = 4,
     .origin = -1,
 };
 
@@ -83,13 +77,10 @@ static inline void crsf_uart_tx_program_init(PIO pio, uint sm, uint offset, uint
     gpio_set_dir(TEST_PIN, GPIO_OUT); // set pin as output  
 #endif
 }
-static inline void crsf_uart_tx_program_stop(PIO pio, uint sm, uint pin_tx) {
+static inline void crsf_uart_tx_program_stop(PIO pio, uint sm, uint pin_tx) {    
     pio_sm_set_enabled(pio, sm, false); // disabled
-    pio_sm_set_pindirs_with_mask(pio, sm, 0 , 1u << pin_tx); // put pin Tx as input
+    pio_sm_set_pindirs_with_mask(pio, sm, 0u , 1u << pin_tx); // put pin Tx as input
     // normally other parameters are already configured by init
-#ifdef DEBUG_TIMING_CRSF
-    gpio_put(TEST_PIN, 0);
-#endif
 }
 static inline void crsf_uart_tx_program_start(PIO pio, uint sm, uint pin_tx , bool invert ) {
     pio_sm_set_pins_with_mask(pio, sm, 1u << pin_tx, 1u << pin_tx);  // put pin TX on  high level
@@ -179,15 +170,19 @@ static inline void crsf_uart_rx_program_stop(PIO pio, uint sm, uint pin_rx) {
     pio_sm_set_enabled(pio, sm, false); // disable sm.    
 }
 static inline void crsf_uart_rx_program_restart(PIO pio, uint sm, uint pin_rx , bool invert) {
-    pio_sm_set_pindirs_with_mask(pio, sm, 0 , 1u << pin_rx); // set pin as input
+    pio_sm_set_pindirs_with_mask(pio, sm, 0u , 1u << pin_rx); // set pin as input
     if (invert) {
         gpio_set_inover(pin_rx,  GPIO_OVERRIDE_INVERT) ; // added by ms to manage inverted UART from Sport
         gpio_pull_down(pin_rx); // changed by MS
     } else {
         gpio_pull_up(pin_rx); // changed by MS
-    }    
+    } 
+    pio_set_irq0_source_enabled(pio ,  pis_sm1_rx_fifo_not_empty , true ); 
     pio_sm_restart (pio, sm); // to test if we need an enable after this
     pio_sm_set_enabled(pio, sm, true);
+#ifdef DEBUG_TIMING_CRSF
+    gpio_put(TEST_PIN, 0);
+#endif
 }    
 /*
 static inline char crsf_uart_rx_program_getc(PIO pio, uint sm) {

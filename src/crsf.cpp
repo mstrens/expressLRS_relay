@@ -10,16 +10,24 @@
 #include "crc.h"
 #include "sport.h"
 #include "stdio.h"  // used by printf
+#include "tools.h"
+
+//#define DEBUG_WITH_FIXED_RC_FRAME
+//#define DEBUG_RECEIVED_FRAME // print the content of valid received frames
+
+
 
 #define CRSF_PIO_PIN 7  // pin being used by the UART pio for ELRS
 
-// When we look at the data exganged with openTX with a logic analyser, it seems that:
+// When we look at the data exchanged with openTX with a logic analyser, it seems that:
 // openTX send a frame with Rc channel once every 4msec (24 bytes at 400000 bauds = 24*25micro sec)
 // the eLRS module sent some frame back about 40/45 usec later with  an adress = EA
 // When the RX has no telemetry, there are at least 2 types of frame to openTx
 // one has a length = 0X0D and a type = 3A; it is sent every 0.2msec
 // the other has a length = 0X0C and a type = 0C (= link statistic); it is sent once every 0.32 sec
-// I expect that there are some others type (gps, vario, ...) 
+// I expect that there are some others type (gps, vario, ...)
+// Still at least when ELRS TX was configured with 500 frames/sec, the connection occurs only when the frames where generates every 2msec instead of 4msec
+// Probably this is related to the frame rate selected in ELRS TX  
 
 queue_t crsfRxQueue ; // queue to get the telemetry data from crsf (from an irq handler)
 
@@ -45,9 +53,10 @@ uint8_t crsfTxBufferLength;
 uint32_t restoreCrsfPioToReceiveMillis = 0; // when 0, the pio is normally in receive mode,
                                         // otherwise, it is the timestamp when pio transmit has to be restore to receive mode
 
-#define CRSF_RC_FRAME_INTERVAL 4 // msec
+//#define CRSF_RC_FRAME_INTERVAL 4 // msec replaced by an interval in micro sec
+#define CRSF_RC_FRAME_INTERVAL_MICROS 4000  // microsec
 #define CRSF_IRQ_TXFIFO_EMPTY PIO1_IRQ_1  // irq when txfifo is empty
-#define CRSF_IRQ_RX_RECEIVED PIO1_IRQ_0   // irs when a byte is received
+#define CRSF_IRQ_RX_RECEIVED PIO1_IRQ_0   // irq when a byte is received
 
 
 volatile CRSF_MODE crsfMode = RECEIVING;
@@ -112,11 +121,12 @@ void setupCRSF(){
     crsf_uart_rx_program_init(crsfPio, crsfSmRx, crsfOffsetRx, CRSF_PIO_PIN, CRSF_SERIAL_BAUD , true);
 }
 
-void crsfPioRxHandlerIrq(){    // when a byte is received on the Sport, read the pio Sport fifo and push the data to a queue (to be processed in the main loop)
+void crsfPioRxHandlerIrq(){    // when a byte is received on the CRSF, read the pio CRSF fifo and push the data to a queue (to be processed in the main loop)
   irq_clear (CRSF_IRQ_RX_RECEIVED ); // clear the irq flag
-  while (  ! pio_sm_is_rx_fifo_empty (crsfPio ,crsfSmRx)){ // when some data have been received
-     uint8_t c = pio_sm_get (crsfPio , crsfSmRx) >> 24;         // read the data
+  while (  ! pio_sm_is_rx_fifo_empty (crsfPio ,crsfSmRx)){ // when some data have been received 
+    uint8_t c = pio_sm_get (crsfPio , crsfSmRx) >> 24;         // read the data
      queue_try_add (&crsfRxQueue, &c);          // push to the queue
+
     //sportRxMillis = millis();                    // save the timestamp.
   }
 }
@@ -144,14 +154,24 @@ void crsfPioRxHandlerIrq(){    // when a byte is received on the Sport, read the
 int64_t alarm_callback_switchToReceiveMode(alarm_id_t id, void *user_data) {
     irq_clear (CRSF_IRQ_RX_RECEIVED ); // clear the irq flag for receiving
     clearCrsfRxQueue();  // clear the queue and reset the process state  
-    irq_set_enabled (CRSF_IRQ_RX_RECEIVED , true) ; // enable the IRQ to handle the received charaters
+    //irq_set_enabled (CRSF_IRQ_RX_RECEIVED , true) ; // enable the IRQ to handle the received charaters
     crsf_uart_tx_program_stop(crsfPio ,crsfSmTx , CRSF_PIO_PIN);
-    crsf_uart_rx_program_restart(crsfPio ,crsfSmTx , CRSF_PIO_PIN , true); // false = no invert     
+    crsf_uart_rx_program_restart(crsfPio ,crsfSmRx , CRSF_PIO_PIN , true); // true = invert     
+    irq_set_enabled (CRSF_IRQ_RX_RECEIVED , true) ; // enable the IRQ to handle the received charaters
+    
     crsfMode = RECEIVING ;
     return 0;  // return 0 to avoid that the callback is called automatically in the future; we use a new add at each time.
 }
 
+
+//#ifdef DEBUG_WITH_FIXED_RC_FRAME
+uint8_t testBuffer[]={ 0xEE , 0x18, 0x16, 0xF2, 0x83, 0x1E, 0xFC, 0x00, 0x08, 0x3E , 0XF0, 0X81,
+                        0X0F, 0x7C , 0xE0, 0x03, 0x1F, 0XF8, 0xC0, 0x07, 0x3E, 0XF0, 0X81, 0x0F, 0x7C, 0X63};
+uint8_t testBufferLength = 0x1A;                        
+//#endif
+
 #define MODULE_ADDRESS  0xEE
+
 void sendCrsfRcFrame(void){   //  called by main loop : 
 //  when crsf state is receiving mode , if last transmit is more than x msec and if Rc channels are available,
 //  - process once more the Rx queue
@@ -172,9 +192,12 @@ void sendCrsfRcFrame(void){   //  called by main loop :
 //    - the irq push the data to a queue
 //  The main loop read the queue and process the received data in handleTlmIn()  
     static uint32_t lastRcFrameSendMillis = 0;
+    static uint32_t lastRcFrameSendMicros = 0;
     ////if ( (crsfMode == RECEIVING) && ( (millis() - lastRcFrameSendMillis ) > CRSF_RC_FRAME_INTERVAL ) && ( crsfRcFrameReady) ) {
-    if ( ( (millis() - lastRcFrameSendMillis ) >= CRSF_RC_FRAME_INTERVAL ) && ( crsfRcFrameReady) ) {
-    //if ( ( (millis() - lastRcFrameSendMillis ) > CRSF_RC_FRAME_INTERVAL )  ) {    
+    //if ( ( (millis() - lastRcFrameSendMillis ) >= CRSF_RC_FRAME_INTERVAL ) && ( crsfRcFrameReady) ) {
+    //if ( ( (millis() - lastRcFrameSendMillis ) >= CRSF_RC_FRAME_INTERVAL )  ) {    
+    if ( ( (micros() - lastRcFrameSendMicros ) >= CRSF_RC_FRAME_INTERVAL_MICROS )  ) {    
+    
         //if (crsfMode == RECEIVING ) printf("receiving\n");
         handleTlmIn(); // try to process one more time just to be sure
         clearCrsfRxQueue(); // clear the receiving queue
@@ -182,20 +205,29 @@ void sendCrsfRcFrame(void){   //  called by main loop :
         fillCrsfTxBuffer(MODULE_ADDRESS);
         fillCrsfTxBuffer(CRSF_FRAME_RC_PAYLOAD_SIZE + 2);
         fillCrsfTxBuffer(CRSF_FRAMETYPE_RC_CHANNELS);
-        fillCrsfTxBuffer( ( (uint8_t *) &crsfRcFrame) + 3 , CRSF_FRAME_RC_PAYLOAD_SIZE);
-        fillCrsfTxBuffer(crsf_crc.calc(&crsfTxBuffer[2], 22));
+        #ifdef DEBUG_WITH_FIXED_RC_FRAME
+        fillCrsfTxBuffer(  &testBuffer[3] , CRSF_FRAME_RC_PAYLOAD_SIZE ); // payload size include type and CRC
+        #else
+        fillCrsfTxBuffer( ( (uint8_t *) &crsfRcFrame) + 3 , CRSF_FRAME_RC_PAYLOAD_SIZE );
+        #endif
+        fillCrsfTxBuffer(crsf_crc.calc(&crsfTxBuffer[2], CRSF_FRAME_RC_PAYLOAD_SIZE + 1));  // crc includes frame type and so is 1 byte more than the payload
+        //float rc1 = (crsfTxBuffer[3] | (crsfTxBuffer[4] <<8 )) & 0x7FF;
+        //printf("rc1 = %f\n", rc1/2);
+        //printHexBuffer( &crsfTxBuffer[0] , crsfTxBufferLength);
         crsf_uart_rx_program_stop(crsfPio, crsfSmRx, CRSF_PIO_PIN);
         crsf_uart_tx_program_start(crsfPio, crsfSmTx, CRSF_PIO_PIN , true ); // true because we invert the UART signal
-        // start the DMA channel with the data to transmit
         dma_channel_set_read_addr (crsf_dma_chan, &crsfTxBuffer[0], false);
         dma_channel_set_trans_count (crsf_dma_chan, crsfTxBufferLength, true) ; // start the dma
-        add_alarm_in_us( (crsfTxBufferLength + 3 )*25, alarm_callback_switchToReceiveMode , NULL , false); // 400000 baud = 2.5 usec/bit = 25 usec/byte
+        add_alarm_in_us( (crsfTxBufferLength *24)+40 , alarm_callback_switchToReceiveMode , NULL , false); // 400000 baud = 2.5 usec/bit = 25 usec/byte
         crsfMode = SENDING ;
         lastRcFrameSendMillis = millis();
+        lastRcFrameSendMicros = micros();
         //irq_clear (CRSF_IRQ_TXFIFO_EMPTY ); // clear the irq flag for TX
         //irq_set_enabled (CRSF_IRQ_TXFIFO_EMPTY , true) ; // enable the IRQ to handle when TXFIFO is empty    
     }
 }
+
+
 
 void clearCrsfRxQueue(){
     uint8_t data;
@@ -210,8 +242,9 @@ void fillCrsfTxBuffer(uint8_t c){
 
 void fillCrsfTxBuffer(uint8_t * bufferFrom , uint8_t length){
     uint8_t count = 0;
-    while (count <= length){
-        crsfTxBuffer[crsfTxBufferLength++] = bufferFrom[count++];
+    while (count < length){
+        crsfTxBuffer[crsfTxBufferLength] = bufferFrom[count++];
+        crsfTxBufferLength++;
     }
 }
 
@@ -235,7 +268,7 @@ void sendCRSFRcFrame(){
 */
 
 // read the rx queue and process each byte (= tlm data)
-// when a frame has been totally received, check it, and store the tlm data in separated fields (to be send later by sport process)
+// when a frame has been totally received, check it, and store the tlm data in separated fields (to be sent later by sport process)
 void handleTlmIn(){
    //static uint8_t tlmBuffer[50];
     static uint8_t tlmCounter;
@@ -282,6 +315,7 @@ void handleTlmIn(){
                     tlmState = CRSF_TLM_NOT_RECEIVING;
                 } else {  // we received a full telemetry packet; we can save it.
                     storeTlmFrame();
+                //printf("frame received\n");
                 }
             break;
             
@@ -292,6 +326,12 @@ void handleTlmIn(){
 extern field fields[SPORT_TYPES_MAX];
 
 void storeTlmFrame(){
+#ifdef DEBUG_RECEIVED_FRAME    
+    for (uint8_t i = 0 ; i<(tlmFrame.tlmBuffer[1] +1); i++){
+        printf(" %X ",tlmFrame.tlmBuffer[i] );
+    }
+    printf("\n");
+#endif    
     int32_t temp;
     switch (tlmFrame.tlmBuffer[2]) { // byte 2 = type
         case CRSF_FRAMETYPE_GPS:
@@ -355,6 +395,7 @@ void storeTlmFrame(){
             fields[DOWNLINK_LINK_QUALITY].available = true;
             fields[DOWNLINK_SNR].value = tlmFrame.linkstatisticsFrame.downlink_SNR;
             fields[DOWNLINK_SNR].available = true; 
+            //printf(" Rf mode %x", tlmFrame.linkstatisticsFrame.rf_Mode);
             break;
     }
 }

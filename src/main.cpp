@@ -21,10 +21,11 @@
 
 void setup() {
   stdio_init_all();
-  uint16_t counter = 50; 
-  if ( watchdog_caused_reboot() ) counter = 0; // avoid the UDC wait time when reboot is caused by the watchdog   
+  uint16_t counter = 100; 
+  //if ( watchdog_caused_reboot() ) counter = 0; // avoid the UDC wait time when reboot is caused by the watchdog   
   while ( (!tud_cdc_connected()) && (counter--)) { sleep_ms(100);  }
   
+  printf("started\n");
   // setup UART for Sbus (100 kbaud, 8E2)...) (inverted)
   setupSbus(); 
 

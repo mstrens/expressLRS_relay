@@ -166,7 +166,7 @@ struct rcFrameStruct
     uint8_t  device_addr; // should be 0xEC (=receiver)
     uint8_t  frame_size;  // counts size after this byte, so it must be the payload size + 2 (type and crc)
     uint8_t  type;        // from crsf_frame_type_e
-    uint8_t  rcChannels[22];     //( rad/1000 )
+    uint8_t  rcChannels[22];     // 16 channels * 11 bits = 176 bits = 
     uint8_t crc;
 } __attribute__((packed)) ;
 

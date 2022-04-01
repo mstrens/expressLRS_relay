@@ -96,6 +96,8 @@ void handleSbusIn(){
 void storeSbusFrame(){
     memcpy( ( (uint8_t *) &crsfRcFrame) + 3, &runningSbusFrame[1], 22);
     crsfRcFrameReady = true;
-    //printf("sbus received\n");
+    //float rc1 = ((runningSbusFrame[1]   |runningSbusFrame[2]<<8) & 0x07FF);
+    //printf("rc1 = %f\n", rc1/2);
+        //printf("sbus received\n");
 
 }  
