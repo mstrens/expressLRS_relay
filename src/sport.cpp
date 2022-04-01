@@ -196,12 +196,13 @@ void sendOneSport(uint8_t idx){  // fill one frame and send it
     uint16_t crc ;
     uint8_t tempBuffer[10];
     tempBuffer[counter++] = 0X10 ; // type of packet : data
-    tempBuffer[counter++] = fields[idx].deviceId    ; // 0x0110 = Id for vario data
-    tempBuffer[counter++] = fields[idx].deviceId >> 8 ; // 0x0110 = Id for vario data
-    tempBuffer[counter++] = fields[idx].value >> 24; // value
+    tempBuffer[counter++] = fields[idx].fieldId    ; // 0x0110 = Id for vario data
+    tempBuffer[counter++] = fields[idx].fieldId >> 8 ; // 0x0110 = Id for vario data
+    tempBuffer[counter++] = fields[idx].value >> 0 ; // value 
+    tempBuffer[counter++] = fields[idx].value >> 8 ;  
     tempBuffer[counter++] = fields[idx].value >> 16 ;  
-    tempBuffer[counter++] = fields[idx].value >> 8 ; // 
-    tempBuffer[counter++] = fields[idx].value >> 0 ; //
+    tempBuffer[counter++] = fields[idx].value >> 24; // value
+    
     crc = tempBuffer[0] ;
     for (uint8_t i = 1; i<=6;i++){
       crc +=  tempBuffer[i]; //0-1FF
@@ -224,6 +225,7 @@ void sendOneSport(uint8_t idx){  // fill one frame and send it
       sportTxBuffer[sportLength++]= tempBuffer[i];
       }
     }
+    sleep_us(100) ;
     sport_uart_rx_program_stop(sportPio, sportSmRx, SPORT_PIO_RX_PIN); // stop receiving
     sport_uart_tx_program_start(sportPio, sportSmTx, SPORT_PIO_RX_PIN, true); // prepare to transmit
     // start the DMA channel with the data to transmit
