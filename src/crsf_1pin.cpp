@@ -14,6 +14,7 @@
  * GNU General Public License for more details.
  */
 
+/*
 //#include <Arduino.h>
 #include "hardware/pio.h"
 #include "hardware/dma.h"
@@ -33,8 +34,7 @@
 
 
 
-#define CRSF_PIO_PIN_TX 7  // pin being used by the UART pio for ELRS
-#define CRSF_PIO_PIN_RX 8  // pin being used by the UART pio for ELRS
+#define CRSF_PIO_PIN 7  // pin being used by the UART pio for ELRS
 
 // When we look at the data exchanged with openTX with a logic analyser, it seems that:
 // openTX send a frame with Rc channel once every 4msec (24 bytes at 400000 bauds = 24*25micro sec)
@@ -71,7 +71,7 @@ uint32_t restoreCrsfPioToReceiveMillis = 0; // when 0, the pio is normally in re
                                         // otherwise, it is the timestamp when pio transmit has to be restore to receive mode
 
 //#define CRSF_RC_FRAME_INTERVAL 4 // msec replaced by an interval in micro sec
-#define CRSF_RC_FRAME_INTERVAL_MICROS 2000  // microsec
+#define CRSF_RC_FRAME_INTERVAL_MICROS 4000  // microsec
 #define CRSF_IRQ_TXFIFO_EMPTY PIO1_IRQ_1  // irq when txfifo is empty
 #define CRSF_IRQ_RX_RECEIVED PIO1_IRQ_0   // irq when a byte is received
 
@@ -121,9 +121,9 @@ void setupCRSF(){
         0 , // do not yet provide the number of bytes (DMA cycles)
         false             // Don't start yet
     );
-// Set up the state machine for transmit and start it (but dma is not yet started) 
+// Set up the state machine for transmit but do not yet start it 
     crsfOffsetTx = pio_add_program(crsfPio, &crsf_uart_tx_program);
-    crsf_uart_tx_program_init(crsfPio, crsfSmTx, crsfOffsetTx, CRSF_PIO_PIN_TX, CRSF_SERIAL_BAUD , true); // we use the same pin and baud rate for tx and rx, true means that UART is inverted 
+    crsf_uart_tx_program_init(crsfPio, crsfSmTx, crsfOffsetTx, CRSF_PIO_PIN, CRSF_SERIAL_BAUD , true); // we use the same pin and baud rate for tx and rx, true means that UART is inverted 
 
 // Set up an irq on pio to handle when Tx fifo is empty. We use PIO1_IRQ_1 for this
     //irq_set_exclusive_handler( CRSF_IRQ_TXFIFO_EMPTY , crsfPioTxEmptyHandlerIrq) ;
@@ -133,12 +133,9 @@ void setupCRSF(){
     irq_set_exclusive_handler( CRSF_IRQ_RX_RECEIVED , crsfPioRxHandlerIrq) ;
     irq_set_enabled (CRSF_IRQ_RX_RECEIVED , false) ;
 
-// Set up the state machine we're going to use to receive them. the sm is started
+// Set up the state machine we're going to use to receive them.
     crsfOffsetRx = pio_add_program(crsfPio, &crsf_uart_rx_program);
-    crsf_uart_rx_program_init(crsfPio, crsfSmRx, crsfOffsetRx, CRSF_PIO_PIN_RX, CRSF_SERIAL_BAUD , true);
-
-    irq_set_enabled (CRSF_IRQ_RX_RECEIVED , true) ; // enable the IRQ to handle the received charaters
-
+    crsf_uart_rx_program_init(crsfPio, crsfSmRx, crsfOffsetRx, CRSF_PIO_PIN, CRSF_SERIAL_BAUD , true);
 }
 
 void crsfPioRxHandlerIrq(){    // when a byte is received on the CRSF, read the pio CRSF fifo and push the data to a queue (to be processed in the main loop)
@@ -158,20 +155,19 @@ void crsfPioRxHandlerIrq(){    // when a byte is received on the CRSF, read the 
 //  - enable the receiving IRQ
 //  - switch PIO receiving mode
 //  - set state to receiving mode
-/*void crsfPioTxEmptyHandlerIrq(){
-    //printf("in irq\n");
-    pio_interrupt_clear(crsfPio, 0);    // clear the irq flag in the pio that was set when Txfifo is empty
-    irq_set_enabled (CRSF_IRQ_TXFIFO_EMPTY , false) ; // disable the IRQ to handle when TXFIFO is empty
-    irq_clear (CRSF_IRQ_TXFIFO_EMPTY ); // clear the irq flag in NVIC
-    irq_clear (CRSF_IRQ_RX_RECEIVED ); // clear the irq flag for receiving
-    clearCrsfRxQueue();  // clear the queue and reset the process state  
-    irq_set_enabled (CRSF_IRQ_RX_RECEIVED , true) ; // enable the IRQ to handle the received charaters
-    crsf_uart_tx_program_stop(crsfPio ,crsfSmTx , CRSF_PIO_PIN);
-    crsf_uart_rx_program_restart(crsfPio ,crsfSmTx , CRSF_PIO_PIN , true); // false = no invert     
-    crsfMode = RECEIVING ;
-}
-*/
-/*
+//*void crsfPioTxEmptyHandlerIrq(){
+//    //printf("in irq\n");
+//    pio_interrupt_clear(crsfPio, 0);    // clear the irq flag in the pio that was set when Txfifo is empty
+//    irq_set_enabled (CRSF_IRQ_TXFIFO_EMPTY , false) ; // disable the IRQ to handle when TXFIFO is empty
+//    irq_clear (CRSF_IRQ_TXFIFO_EMPTY ); // clear the irq flag in NVIC
+//    irq_clear (CRSF_IRQ_RX_RECEIVED ); // clear the irq flag for receiving
+//    clearCrsfRxQueue();  // clear the queue and reset the process state  
+//    irq_set_enabled (CRSF_IRQ_RX_RECEIVED , true) ; // enable the IRQ to handle the received charaters
+//    crsf_uart_tx_program_stop(crsfPio ,crsfSmTx , CRSF_PIO_PIN);
+//    crsf_uart_rx_program_restart(crsfPio ,crsfSmTx , CRSF_PIO_PIN , true); // false = no invert     
+//    crsfMode = RECEIVING ;
+//}
+
 int64_t alarm_callback_switchToReceiveMode(alarm_id_t id, void *user_data) {
     irq_clear (CRSF_IRQ_RX_RECEIVED ); // clear the irq flag for receiving
     clearCrsfRxQueue();  // clear the queue and reset the process state  
@@ -183,7 +179,7 @@ int64_t alarm_callback_switchToReceiveMode(alarm_id_t id, void *user_data) {
     crsfMode = RECEIVING ;
     return 0;  // return 0 to avoid that the callback is called automatically in the future; we use a new add at each time.
 }
-*/
+
 
 //#ifdef DEBUG_WITH_FIXED_RC_FRAME
 uint8_t testBuffer[]={ 0xEE , 0x18, 0x16, 0xF2, 0x83, 0x1E, 0xFC, 0x00, 0x08, 0x3E , 0XF0, 0X81,
@@ -220,8 +216,8 @@ void sendCrsfRcFrame(void){   //  called by main loop :
     if ( ( (micros() - lastRcFrameSendMicros ) >= CRSF_RC_FRAME_INTERVAL_MICROS )  ) {    
     
         //if (crsfMode == RECEIVING ) printf("receiving\n");
-        //handleTlmIn(); // try to process one more time just to be sure
-        //clearCrsfRxQueue(); // clear the receiving queue
+        handleTlmIn(); // try to process one more time just to be sure
+        clearCrsfRxQueue(); // clear the receiving queue
         crsfTxBufferLength = 0;
         fillCrsfTxBuffer(MODULE_ADDRESS);
         fillCrsfTxBuffer(CRSF_FRAME_RC_PAYLOAD_SIZE + 2);
@@ -235,11 +231,11 @@ void sendCrsfRcFrame(void){   //  called by main loop :
         //float rc1 = (crsfTxBuffer[3] | (crsfTxBuffer[4] <<8 )) & 0x7FF;
         //printf("rc1 = %f\n", rc1/2);
         //printHexBuffer( &crsfTxBuffer[0] , crsfTxBufferLength);
-//        crsf_uart_rx_program_stop(crsfPio, crsfSmRx, CRSF_PIO_PIN_RX);
-//        crsf_uart_tx_program_start(crsfPio, crsfSmTx, CRSF_PIO_PIN_TX , true ); // true because we invert the UART signal
+        crsf_uart_rx_program_stop(crsfPio, crsfSmRx, CRSF_PIO_PIN);
+        crsf_uart_tx_program_start(crsfPio, crsfSmTx, CRSF_PIO_PIN , true ); // true because we invert the UART signal
         dma_channel_set_read_addr (crsf_dma_chan, &crsfTxBuffer[0], false);
         dma_channel_set_trans_count (crsf_dma_chan, crsfTxBufferLength, true) ; // start the dma
-//        add_alarm_in_us( (crsfTxBufferLength *24)+40 , alarm_callback_switchToReceiveMode , NULL , false); // 400000 baud = 2.5 usec/bit = 25 usec/byte
+        add_alarm_in_us( (crsfTxBufferLength *24)+40 , alarm_callback_switchToReceiveMode , NULL , false); // 400000 baud = 2.5 usec/bit = 25 usec/byte
         crsfMode = SENDING ;
         lastRcFrameSendMillis = millis();
         lastRcFrameSendMicros = micros();
@@ -268,24 +264,24 @@ void fillCrsfTxBuffer(uint8_t * bufferFrom , uint8_t length){
     }
 }
 
-/*
-void sendCRSFRcFrame(){
-    static uint32_t lastRcFrameSendMillis ;
-    if ( ( (millis() - lastRcFrameSendMillis ) > CRSF_RC_FRAME_INTERVAL ) && ( CRSFRcFrameReady) ) {
-        //Serial1.write(MODULE_ADDRESS);
-        //Serial1.write(CRSF_FRAME_RC_PAYLOAD_SIZE + 2);
-        //Serial1.write(CRSF_FRAMETYPE_RC_CHANNELS);
-        //Serial1.write(& CRSFRcFrame[3], CRSF_FRAME_RC_PAYLOAD_SIZE);
-        //Serial1.write(crsf_crc.calc(&CRSFRcFrame[2], 22));
-        crsfTxBufferLength = 0;
-        fillCrsfBuffer(MODULE_ADDRESS);
-        fillCrsfBuffer(CRSF_FRAME_RC_PAYLOAD_SIZE + 2);
-        fillCrsfBuffer(CRSF_FRAMETYPE_RC_CHANNELS);
-        fillCrsfBuffer(&CRSFRcFrame[3], CRSF_FRAME_RC_PAYLOAD_SIZE);
-        fillCrsfBuffer(crsf_crc.calc(&crsfTXBuffer[2], 22));    
-    }
-}
-*/
+
+//void sendCRSFRcFrame(){
+//    static uint32_t lastRcFrameSendMillis ;
+//    if ( ( (millis() - lastRcFrameSendMillis ) > CRSF_RC_FRAME_INTERVAL ) && ( CRSFRcFrameReady) ) {
+//        //Serial1.write(MODULE_ADDRESS);
+//        //Serial1.write(CRSF_FRAME_RC_PAYLOAD_SIZE + 2);
+//        //Serial1.write(CRSF_FRAMETYPE_RC_CHANNELS);
+//        //Serial1.write(& CRSFRcFrame[3], CRSF_FRAME_RC_PAYLOAD_SIZE);
+//        //Serial1.write(crsf_crc.calc(&CRSFRcFrame[2], 22));
+//        crsfTxBufferLength = 0;
+//        fillCrsfBuffer(MODULE_ADDRESS);
+//        fillCrsfBuffer(CRSF_FRAME_RC_PAYLOAD_SIZE + 2);
+//        fillCrsfBuffer(CRSF_FRAMETYPE_RC_CHANNELS);
+//        fillCrsfBuffer(&CRSFRcFrame[3], CRSF_FRAME_RC_PAYLOAD_SIZE);
+//        fillCrsfBuffer(crsf_crc.calc(&crsfTXBuffer[2], 22));    
+//    }
+//}
+
 
 // read the rx queue and process each byte (= tlm data)
 // when a frame has been totally received, check it, and store the tlm data in separated fields (to be sent later by sport process)
@@ -297,7 +293,6 @@ void handleTlmIn(){
     uint8_t c;
     while(! queue_is_empty(&crsfRxQueue)) {
         queue_try_remove (&crsfRxQueue,&c);        
-        //printf("%x\n", c);
         switch (tlmState) {
             case CRSF_TLM_NOT_RECEIVING :
                 if (c == CRSF_ADDRESS_TLM) {
@@ -421,3 +416,4 @@ void storeTlmFrame(){
     }
 }
 
+*/

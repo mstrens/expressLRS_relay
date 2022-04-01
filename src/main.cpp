@@ -25,12 +25,15 @@
 #include <tusb.h>
 #include <inttypes.h>
 
-//     CRSF (Tx and RX) uses PIO1 and pin 7 ; for safety, insert a 1K resistor in serie on the wire to Frsky Sport
+//     CRSF uses PIO1 with 2 pins. pin 7 for TX and pin 8 for RX;
+//          still ELRS module uses half duplex UART with only one pin (the lowest in the JR bay which is normally used for Sport)
+//          So, pin 8 (RX) from RP2040 has to be connected to the lowest pin (Sport) from ELRS Tx module
+//          and pin 7 (TX) from RP2040 has to be connected to pin 8 from RP2040 via a resistor (a value of 1K ohm should be ok)
 //     SBUS uses pin 1 UART0 RX = Serial  
 //     SPORT (TX and RX) uses PIO0 and pin 8; for safety, insert a 1K resistor in serie on the wire to Frsky Sport
 //  the pinout of the ELRS Tx module is the folowing:
-//      - ???? not used
-//      - ???? not used 
+//      - upper pin = ???? not used
+//      - second upper pin = ???? not used 
 //      - battery VCC (5V-10V)
 //      - gnd
 //      - CRSF signal (is usually used by frsky for sport signal)
