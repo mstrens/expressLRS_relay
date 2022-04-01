@@ -30,13 +30,26 @@
 //          So, pin 8 (RX) from RP2040 has to be connected to the lowest pin (Sport) from ELRS Tx module
 //          and pin 7 (TX) from RP2040 has to be connected to pin 8 from RP2040 via a resistor (a value of 1K ohm should be ok)
 //     SBUS uses pin 1 UART0 RX = Serial  
-//     SPORT (TX and RX) uses PIO0 and pin 8; for safety, insert a 1K resistor in serie on the wire to Frsky Sport
+//     SPORT (TX and RX) uses PIO0 and pin 5; for safety, insert a 1K resistor in serie on the wire to Frsky Sport
 //  the pinout of the ELRS Tx module is the folowing:
 //      - upper pin = ???? not used
 //      - second upper pin = ???? not used 
 //      - battery VCC (5V-10V)
 //      - gnd
 //      - CRSF signal (is usually used by frsky for sport signal)
+//
+//       The firmware reads the Sbus signal and save the 16 channels values
+//       At regular interval (2 or 4ms as defined in the set up; not Sbus related),
+//                       it sent a CRSF RC channels frame with the last received Sbus value
+//       If the ELRS Tx module is binded with the ELRS Rx module,
+//                       it get back a telemetry frame just after sending some RC channels (delay between is about 40usec)
+//       There are 5 types of telemetry frames being decoded by the firmware
+//       When valid, the telemetry data of each frame are stored in memory
+//       At regular interval the Frsky receiver sent a pulling code to ask if some device has telemetry data to transmit.
+//       When the device ID of the module is polled, the firmware sent on Sport bus a frame with one data (Id and value)
+//       On each request, the firmware tries to send a different data if the delay from the previous one (of the same type) exceed some delay
+//       The delay's of each type of data can be set up in order to manage priority in some way.
+
 
 void setup() {
   stdio_init_all();
