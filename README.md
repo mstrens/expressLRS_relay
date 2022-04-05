@@ -4,6 +4,7 @@ The technology used in the ExpressLRS TX modules gives us an enormous range and 
 The objective of this project is to close this gap by creating a bidirectional converter for the CRFS protocol used in ExpressLSR and TBS Crossfire. 
 Using two cheap microcontroller boards, the relay will convert the CRFS protocol used to SBUS+SPORT and back allowing the mounting of the ExpresssLRS TX into a pole or tracker, greatly extending its range and mobility.
 Currently, only RP2040-zero (and potentially Raspberry Pi Pico) is supported but other platforms with 3 serial ports can be used and may be supported in the future.
+![](https://github.com/mstrens/expressLRS_relay/blob/master/expresslrs_relay.png?raw=true)
 ### Important: at this point the code is not ready for flying, only bench tests have being done!
 ### The authors can't take responsibility, personal or otherwise, by the use of this software. It is provided "as is".
 This software is licenced under the GPLv3. Please check the LICENSE file for more information but, in short:
