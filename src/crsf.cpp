@@ -71,10 +71,11 @@ uint32_t restoreCrsfPioToReceiveMillis = 0; // when 0, the pio is normally in re
                                         // otherwise, it is the timestamp when pio transmit has to be restore to receive mode
 
 //#define CRSF_RC_FRAME_INTERVAL 4 // msec replaced by an interval in micro sec
-#define CRSF_RC_FRAME_INTERVAL_MICROS 2000  // microsec
+#define CRSF_RC_FRAME_INTERVAL_MICROS 4000  // microsec
 #define CRSF_IRQ_TXFIFO_EMPTY PIO1_IRQ_1  // irq when txfifo is empty
 #define CRSF_IRQ_RX_RECEIVED PIO1_IRQ_0   // irq when a byte is received
 
+uint32_t crsfRcFrameIntervalMicros = CRSF_RC_FRAME_INTERVAL_MICROS ;
 
 volatile CRSF_MODE crsfMode = RECEIVING;
 
@@ -94,6 +95,8 @@ gpsFrameStruct gpsFrame;
 
 rcFrameStruct crsfRcFrame ;
 bool crsfRcFrameReady = false;
+
+bool oneFrameFromElrsReceived = false; // become true when a valid frame is received from ELRS
 
 GENERIC_CRC8 crsf_crc(CRSF_CRC_POLY);
 
@@ -214,37 +217,23 @@ void sendCrsfRcFrame(void){   //  called by main loop :
 //  The main loop read the queue and process the received data in handleTlmIn()  
     static uint32_t lastRcFrameSendMillis = 0;
     static uint32_t lastRcFrameSendMicros = 0;
+    static bool waitFirstFrameFromElrs = true;
     ////if ( (crsfMode == RECEIVING) && ( (millis() - lastRcFrameSendMillis ) > CRSF_RC_FRAME_INTERVAL ) && ( crsfRcFrameReady) ) {
     //if ( ( (millis() - lastRcFrameSendMillis ) >= CRSF_RC_FRAME_INTERVAL ) && ( crsfRcFrameReady) ) {
     //if ( ( (millis() - lastRcFrameSendMillis ) >= CRSF_RC_FRAME_INTERVAL )  ) {    
-    if ( ( (micros() - lastRcFrameSendMicros ) >= CRSF_RC_FRAME_INTERVAL_MICROS )  ) {    
-    
-        //if (crsfMode == RECEIVING ) printf("receiving\n");
-        //handleTlmIn(); // try to process one more time just to be sure
-        //clearCrsfRxQueue(); // clear the receiving queue
-        crsfTxBufferLength = 0;
-        fillCrsfTxBuffer(MODULE_ADDRESS);
-        fillCrsfTxBuffer(CRSF_FRAME_RC_PAYLOAD_SIZE + 2);
-        fillCrsfTxBuffer(CRSF_FRAMETYPE_RC_CHANNELS);
-        #ifdef DEBUG_WITH_FIXED_RC_FRAME
-        fillCrsfTxBuffer(  &testBuffer[3] , CRSF_FRAME_RC_PAYLOAD_SIZE ); // payload size include type and CRC
-        #else
-        fillCrsfTxBuffer( ( (uint8_t *) &crsfRcFrame) + 3 , CRSF_FRAME_RC_PAYLOAD_SIZE );
-        #endif
-        fillCrsfTxBuffer(crsf_crc.calc(&crsfTxBuffer[2], CRSF_FRAME_RC_PAYLOAD_SIZE + 1));  // crc includes frame type and so is 1 byte more than the payload
-        //float rc1 = (crsfTxBuffer[3] | (crsfTxBuffer[4] <<8 )) & 0x7FF;
-        //printf("rc1 = %f\n", rc1/2);
-        //printHexBuffer( &crsfTxBuffer[0] , crsfTxBufferLength);
-//        crsf_uart_rx_program_stop(crsfPio, crsfSmRx, CRSF_PIO_PIN_RX);
-//        crsf_uart_tx_program_start(crsfPio, crsfSmTx, CRSF_PIO_PIN_TX , true ); // true because we invert the UART signal
+    if ( ( (micros() - lastRcFrameSendMicros ) >= crsfRcFrameIntervalMicros )  ) {    
+        if (waitFirstFrameFromElrs && oneFrameFromElrsReceived){
+            waitFirstFrameFromElrs = false;
+            createRadioModelIdFrame();
+        } else {
+            createRcChannelsFrame();
+        }    
         dma_channel_set_read_addr (crsf_dma_chan, &crsfTxBuffer[0], false);
         dma_channel_set_trans_count (crsf_dma_chan, crsfTxBufferLength, true) ; // start the dma
 //        add_alarm_in_us( (crsfTxBufferLength *24)+40 , alarm_callback_switchToReceiveMode , NULL , false); // 400000 baud = 2.5 usec/bit = 25 usec/byte
         crsfMode = SENDING ;
         lastRcFrameSendMillis = millis();
         lastRcFrameSendMicros = micros();
-        //irq_clear (CRSF_IRQ_TXFIFO_EMPTY ); // clear the irq flag for TX
-        //irq_set_enabled (CRSF_IRQ_TXFIFO_EMPTY , true) ; // enable the IRQ to handle when TXFIFO is empty    
     }
 }
 
@@ -266,6 +255,34 @@ void fillCrsfTxBuffer(uint8_t * bufferFrom , uint8_t length){
         crsfTxBuffer[crsfTxBufferLength] = bufferFrom[count++];
         crsfTxBufferLength++;
     }
+}
+
+void createRcChannelsFrame(){
+        crsfTxBufferLength = 0;
+        fillCrsfTxBuffer(MODULE_ADDRESS);
+        fillCrsfTxBuffer(CRSF_FRAME_RC_PAYLOAD_SIZE + 2);
+        fillCrsfTxBuffer(CRSF_FRAMETYPE_RC_CHANNELS);
+        #ifdef DEBUG_WITH_FIXED_RC_FRAME
+        fillCrsfTxBuffer(  &testBuffer[3] , CRSF_FRAME_RC_PAYLOAD_SIZE ); // payload size include type and CRC
+        #else
+        fillCrsfTxBuffer( ( (uint8_t *) &crsfRcFrame) + 3 , CRSF_FRAME_RC_PAYLOAD_SIZE );
+        #endif
+        fillCrsfTxBuffer(crsf_crc.calc(&crsfTxBuffer[2], CRSF_FRAME_RC_PAYLOAD_SIZE + 1));  // crc includes frame type and so is 1 byte more than the payload
+}        
+
+#define MODEL_ID 0
+void createRadioModelIdFrame(){
+        crsfTxBufferLength = 0;
+        fillCrsfTxBuffer(CRSF_ADDRESS_FLIGHT_CONTROLLER);
+        fillCrsfTxBuffer(8); // size of payload
+        fillCrsfTxBuffer(CRSF_FRAMETYPE_COMMAND);
+        fillCrsfTxBuffer(CRSF_ADDRESS_CRSF_TRANSMITTER) ; 
+        fillCrsfTxBuffer(CRSF_ADDRESS_RADIO_TRANSMITTER) ;
+        fillCrsfTxBuffer(SUBCOMMAND_CRSF);
+        fillCrsfTxBuffer(COMMAND_MODEL_SELECT_ID) ;
+        fillCrsfTxBuffer(MODEL_ID);   // sequence of the model ID (in range 0...63)        
+        fillCrsfTxBuffer(command_crc8(&crsfTxBuffer[2], 6));
+        fillCrsfTxBuffer(crc8(&crsfTxBuffer[2], 7));
 }
 
 /*
@@ -316,8 +333,8 @@ void handleTlmIn(){
                     || ( ( c == CRSF_FRAMETYPE_VARIO) && (tlmLength == (CRSF_FRAME_VARIO_PAYLOAD_SIZE+2) ) )
                     || ( ( c == CRSF_FRAMETYPE_BATTERY_SENSOR) && (tlmLength == (CRSF_FRAME_BATTERY_SENSOR_PAYLOAD_SIZE+2) ) )
                     || ( ( c == CRSF_FRAMETYPE_ATTITUDE) && (tlmLength == (CRSF_FRAME_ATTITUDE_PAYLOAD_SIZE+2) ) ) 
-                    || ( ( c == CRSF_FRAMETYPE_LINK_STATISTICS) && (tlmLength == (CRSF_FRAME_LINK_STATISTICS_PAYLOAD_SIZE+2) ) )     ){
-                    
+                    || ( ( c == CRSF_FRAMETYPE_LINK_STATISTICS) && (tlmLength == (CRSF_FRAME_LINK_STATISTICS_PAYLOAD_SIZE+2) ) ) 
+                    || ( ( c == CRSF_FRAMETYPE_RADIO_ID ) && (tlmLength == (CRSF_FRAME_OPENTX_SYNC_PAYLOAD_SIZE+2) ) )     ){
                     tlmType = c;
                     tlmState = CRSF_TLM_RECEIVING_PAYLOAD;
                     tlmFrame.tlmBuffer[tlmCounter++] = c;
@@ -354,6 +371,7 @@ void storeTlmFrame(){
     printf("\n");
 #endif    
     int32_t temp;
+    oneFrameFromElrsReceived = true ;
     switch (tlmFrame.tlmBuffer[2]) { // byte 2 = type
         case CRSF_FRAMETYPE_GPS:
             temp = tlmFrame.gpsFrame.longitude; // degree with 7 decimals
@@ -417,6 +435,19 @@ void storeTlmFrame(){
             fields[DOWNLINK_SNR].value = tlmFrame.linkstatisticsFrame.downlink_SNR;
             fields[DOWNLINK_SNR].available = true; 
             //printf(" Rf mode %x", tlmFrame.linkstatisticsFrame.rf_Mode);
+            break;
+        case CRSF_FRAMETYPE_RADIO_ID:
+            int rate ;
+            int offset;
+            if ( ( tlmFrame.opentxSyncFrame.dest_addr == 0xEA ) && (tlmFrame.opentxSyncFrame.synchrType == 0x10) ) {
+                rate = swap_int32(tlmFrame.opentxSyncFrame.rate) / 10 ; // save rate in usec
+                offset = swap_int32(tlmFrame.opentxSyncFrame.offset) / 10 ;// save offset in usec
+            }
+            printf( "tlm=");
+            for ( uint8_t i = 0; i < (0X0D+2) ; i++){
+                printf("%X ",tlmFrame.tlmBuffer[i]);
+            }
+            printf("rate=%i   offset=%i\n", rate , offset );
             break;
     }
 }
