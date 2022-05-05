@@ -19,8 +19,16 @@
 #include <inttypes.h>
 
 #define CRSF_ADDRESS_CRSF_RECEIVER 0xEC // address of the receiver (used for telemetry)
+#define CRSF_ADDRESS_FLIGHT_CONTROLLER 0xC8  // address of the flight controller
+#define CRSF_ADDRESS_CRSF_TRANSMITTER  0xEE //  address of the crsf transmitter
+#define CRSF_ADDRESS_RADIO_TRANSMITTER 0xEA // address of the sender
+
+#define SUBCOMMAND_CRSF 0x10 // subcommand to send the radio model id
+
+#define COMMAND_MODEL_SELECT_ID 0x05 // sub command to identify the radio model id
 
 typedef enum
+
 {
     CRSF_FRAMETYPE_GPS = 0x02,
     CRSF_FRAMETYPE_VARIO = 0x07,
@@ -60,8 +68,13 @@ typedef enum
 #define CRSF_FRAME_ATTITUDE_PAYLOAD_SIZE 6 
 #define CRSF_FRAME_FLIGHT_MODE_PAYLOAD_SIZE 8  // to change?
 #define CRSF_FRAME_LINK_STATISTICS_PAYLOAD_SIZE 10
+#define CRSF_FRAME_OPENTX_SYNC_PAYLOAD_SIZE 11 //
 
-#define CRSF_ADDRESS_TLM 0xEA // this value has been seen using the logic analyser
+#define CRSF_ADDRESS_TLM 0xEA // this value has been seen using the logic analyser = radio transmitter
+
+// telemetry synchronisation sent from ELRS to the radio transmitter contains
+// EA 0D 3A EA ?? 10 xx xx xx xx yy yy yy yy cc ; xx = 32 bits for rate us*10 ; yy idem but offset
+
 
 enum CRSF_MODE {
     RECEIVING = 0,
@@ -132,6 +145,20 @@ struct attitudeFrameStruct
     uint8_t crc;
 } __attribute__((packed)) ;
 
+struct opentxSyncFrameStruct
+{
+    uint8_t  device_addr; // should be 0xEA (=receiver)
+    uint8_t  frame_size;  // = 0x0D
+    uint8_t  type;        // = 0x3A
+    uint8_t  dest_addr;   // = 0xEA
+    uint8_t  orig_addr;   // = ??
+    uint8_t  synchrType;   // = 0x10
+    int32_t  rate;     // rate in 1/10 of usec
+    int32_t  offset;   // offset in 1/10 of usec
+    uint8_t crc;
+} __attribute__((packed)) ;
+
+
 /*
  * 0x14 Link statistics
  * Payload:
@@ -174,6 +201,7 @@ union {
  varioFrameStruct varioFrame;
  attitudeFrameStruct attitudeFrame;
  linkstatisticsFrameStruct linkstatisticsFrame;
+ opentxSyncFrameStruct opentxSyncFrame;
  uint8_t tlmBuffer[50];
 } tlmFrame ;
 
@@ -196,6 +224,9 @@ void crsfPioRxHandlerIrq();
 //void fillCrsfBufferWithRcChannels();
 void fillCrsfTxBuffer(uint8_t c);
 void fillCrsfTxBuffer(uint8_t * bufferFrom , uint8_t length);
+void createRcChannelsFrame();
+void createRadioModelIdFrame();
+
 void crsfPioTxEmptyHandlerIrq();
 void clearCrsfRxQueue();
 
