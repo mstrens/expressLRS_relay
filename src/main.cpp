@@ -25,8 +25,6 @@
 #include <tusb.h>
 #include <inttypes.h>
 
-// to do : in crsf.cpp, handle the synchronisation frame from ELRS (decode it and change interval based on rate and offset)
-
 //     CRSF uses PIO1 with 2 pins. pin 7 for TX and pin 8 for RX;
 //          still ELRS module uses half duplex UART with only one pin (the lowest in the JR bay which is normally used for Sport)
 //          So, pin 8 (RX) from RP2040 has to be connected to the lowest pin (Sport) from ELRS Tx module
@@ -64,7 +62,7 @@ void setup() {
   setupSbus(); 
 
   // setup crsf uart for CRSF at 400000 baud; use pio1, 2 sm (one for tx and one for rx), dma for sending , irq and queue for reading)
-  // the relay is master of crsf uart; it sent rc frame once every 4ms (or 2ms) and between 2 frames, it read the telemetry on the same pin
+  // the relay is master of crsf uart; it sent rc frame once every 4ms and between 2 frames, it read the telemetry on the same pin
   setupCRSF();
 
   // setup Sport uart (using pio0, 2 sm, dma, irq, queue)

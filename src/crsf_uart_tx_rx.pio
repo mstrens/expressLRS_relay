@@ -58,7 +58,7 @@ static inline void crsf_uart_tx_program_init(PIO pio, uint sm, uint offset, uint
     pio_sm_set_pindirs_with_mask(pio, sm, 1u << pin_tx, 1u << pin_tx); 
     pio_gpio_init(pio, pin_tx);
     if ( invert ) {
-        gpio_set_outover(pin_tx,  GPIO_OVERRIDE_INVERT) ; // added by ms to manage inverted UART from 
+        gpio_set_outover(pin_tx,  GPIO_OVERRIDE_INVERT) ; // added by ms to manage inverted UART from Sport
         gpio_pull_down(pin_tx); // changed by MS
     } else {
         gpio_pull_up(pin_tx); // changed by MS

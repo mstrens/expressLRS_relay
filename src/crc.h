@@ -44,6 +44,3 @@ public:
     uint16_t calc(uint8_t *data, uint8_t len, uint16_t crc);
     uint16_t calc(volatile uint8_t *data, uint8_t len, uint16_t crc);
 };
-
-uint8_t crc8(const uint8_t * ptr, uint32_t len);
-uint8_t command_crc8(const uint8_t * ptr, uint32_t len);
