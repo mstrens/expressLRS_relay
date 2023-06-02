@@ -21,7 +21,7 @@
 #include "hardware/uart.h"
 #include "hardware/irq.h"
 #include "pico/util/queue.h"
-#include <sbus.h>
+#include "sbus.h"
 #include "crsf.h"
 #include "tools.h"
 #include <string.h> // used by memcpy

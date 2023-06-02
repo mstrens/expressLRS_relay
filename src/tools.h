@@ -39,3 +39,5 @@ uint32_t swap_uint32( uint32_t val );
 
 //! Byte swap int
 int32_t swap_int32( int32_t val );
+
+uint32_t millis();

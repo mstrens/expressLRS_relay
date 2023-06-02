@@ -29,7 +29,7 @@
 #include "tools.h"
 
 //#define DEBUG_WITH_FIXED_RC_FRAME
-//#define DEBUG_RECEIVED_FRAME // print the content of valid received frames
+#define DEBUG_RECEIVED_FRAME // print the content of valid received frames
 
 
 
@@ -366,7 +366,7 @@ extern field fields[SPORT_TYPES_MAX];
 void storeTlmFrame(){
 #ifdef DEBUG_RECEIVED_FRAME    
     for (uint8_t i = 0 ; i<(tlmFrame.tlmBuffer[1] +1); i++){
-        printf(" %X ",tlmFrame.tlmBuffer[i] );
+        printf(" %2X ",tlmFrame.tlmBuffer[i] );
     }
     printf("\n");
 #endif    

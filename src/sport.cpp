@@ -25,6 +25,7 @@
 #include "pico/util/queue.h"
 #include "hardware/dma.h"
 #include "sport.h"
+#include "tools.h"
 
 // to do: 
 // if we can reply to several device id, we should keep a table with the last field index used for this deviceid

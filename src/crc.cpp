@@ -14,7 +14,7 @@
  * GNU General Public License for more details.
  */
 
-#include <crc.h>
+#include "crc.h"
 
 GENERIC_CRC8::GENERIC_CRC8(uint8_t poly)
 {

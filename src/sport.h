@@ -16,7 +16,7 @@
 
 #pragma once
 
-#include "Arduino.h"
+//#include "Arduino.h"
 
 #define SPORT_TYPES_MAX 24
 struct field {
