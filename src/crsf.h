@@ -75,6 +75,8 @@ typedef enum
 // telemetry synchronisation sent from ELRS to the radio transmitter contains
 // EA 0D 3A EA ?? 10 xx xx xx xx yy yy yy yy cc ; xx = 32 bits for rate us*10 ; yy idem but offset
 
+bool getCrossfireTelemetryValue(uint8_t index, uint8_t len , int32_t & value);
+
 
 enum CRSF_MODE {
     RECEIVING = 0,

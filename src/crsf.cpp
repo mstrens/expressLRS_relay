@@ -374,66 +374,68 @@ void storeTlmFrame(){
     oneFrameFromElrsReceived = true ;
     switch (tlmFrame.tlmBuffer[2]) { // byte 2 = type
         case CRSF_FRAMETYPE_GPS:
-            temp = tlmFrame.gpsFrame.longitude; // degree with 7 decimals
-            fields[LONGITUDE].value = (( ((((uint32_t)( temp < 0 ? -temp : temp)) /10 ) * 6 ) / 10 ) & 0x3FFFFFFF)  | 0x80000000;  
-            if(temp < 0) fields[LONGITUDE].value |= 0x40000000;
-            fields[LONGITUDE].available = true ;        
-            temp = tlmFrame.gpsFrame.latitude;
+            fields[LATITUDE].available = getCrossfireTelemetryValue(3, 4 , temp) ;        
+            //temp = tlmFrame.gpsFrame.latitude;
             fields[LATITUDE].value = (( ((((uint32_t)( temp < 0 ? -temp : temp)) /10 ) * 6 ) / 10 ) & 0x3FFFFFFF)  ;  
             if(temp < 0) fields[LATITUDE].value |= 0x40000000;
-            fields[LATITUDE].available = true ;
-            fields[GROUNDSPEED].value = tlmFrame.gpsFrame.groundspeed; //( km/h / 10 )
-            fields[GROUNDSPEED].available = true;
-            fields[HEADING].value = tlmFrame.gpsFrame.heading; //( degree / 100 )
-            fields[HEADING].available = true;
-            fields[ALTITUDE].value = tlmFrame.gpsFrame.altitude;
-            fields[ALTITUDE].available = true;
-            fields[NUMSAT].value = tlmFrame.gpsFrame.numSat;
-            fields[NUMSAT].available = true;
+            
+            fields[LONGITUDE].available = getCrossfireTelemetryValue(7, 4 , temp) ;        
+            //temp = tlmFrame.gpsFrame.longitude; // degree with 7 decimals
+            fields[LONGITUDE].value = (( ((((uint32_t)( temp < 0 ? -temp : temp)) /10 ) * 6 ) / 10 ) & 0x3FFFFFFF)  | 0x80000000;  
+            if(temp < 0) fields[LONGITUDE].value |= 0x40000000;
+            
+            //fields[GROUNDSPEED].value = tlmFrame.gpsFrame.groundspeed; //( km/h / 10 )
+            fields[GROUNDSPEED].available = getCrossfireTelemetryValue(11, 2 , fields[GROUNDSPEED].value) ;
+            //fields[HEADING].value = tlmFrame.gpsFrame.heading; //( degree / 100 )
+            fields[HEADING].available = getCrossfireTelemetryValue(13, 2 , fields[HEADING].value) ;
+            //fields[ALTITUDE].value = tlmFrame.gpsFrame.altitude;
+            fields[ALTITUDE].available = getCrossfireTelemetryValue(15, 2 , fields[ALTITUDE].value) ;
+            //fields[NUMSAT].value = tlmFrame.gpsFrame.numSat;
+            fields[NUMSAT].available = getCrossfireTelemetryValue(17, 1 , fields[NUMSAT].value) ;
             break;
         case CRSF_FRAMETYPE_VARIO:
-            fields[VSPEED].value = tlmFrame.varioFrame.vSpeed;
-            fields[VSPEED].available = true;
+            //fields[VSPEED].value = tlmFrame.varioFrame.vSpeed;
+            fields[VSPEED].available = getCrossfireTelemetryValue(3, 2 , fields[VSPEED].value);
             break;
         case CRSF_FRAMETYPE_BATTERY_SENSOR:
-            fields[MVOLT].value = tlmFrame.voltageFrame.mVolt;
-            fields[MVOLT].available = true;
-            fields[CURRENT].value = tlmFrame.voltageFrame.current;
-            fields[CURRENT].available = true;
-            fields[CAPACITY].value = tlmFrame.voltageFrame.capacity;
-            fields[CAPACITY].available = true;
-            fields[REMAIN].value = tlmFrame.voltageFrame.remain;
-            fields[REMAIN].available = true;
+            //fields[MVOLT].value = tlmFrame.voltageFrame.mVolt;
+            fields[MVOLT].available = getCrossfireTelemetryValue(3, 2 , fields[MVOLT].value) ;
+            //fields[CURRENT].value = tlmFrame.voltageFrame.current;
+            fields[CURRENT].available = getCrossfireTelemetryValue(5, 2 , fields[CURRENT].value);
+            //fields[CAPACITY].value = tlmFrame.voltageFrame.capacity;
+            fields[CAPACITY].available = getCrossfireTelemetryValue(7, 3 , fields[CAPACITY].value);
+            //fields[REMAIN].value = tlmFrame.voltageFrame.remain;
+            fields[REMAIN].available = getCrossfireTelemetryValue(10, 1 , fields[REMAIN].value);
             break;
         case CRSF_FRAMETYPE_ATTITUDE:
-            fields[PITCH].value = tlmFrame.attitudeFrame.pitch;
-            fields[PITCH].available = true;
-            fields[ROLL].value = tlmFrame.attitudeFrame.roll;
-            fields[ROLL].available = true;
-            fields[YAW].value = tlmFrame.attitudeFrame.yaw;
-            fields[YAW].available = true;            
+            //fields[PITCH].value = tlmFrame.attitudeFrame.pitch;
+            fields[PITCH].available = getCrossfireTelemetryValue(3, 2 , fields[PITCH].value);
+            //fields[ROLL].value = tlmFrame.attitudeFrame.roll;
+            fields[ROLL].available = getCrossfireTelemetryValue(5, 2 , fields[ROLL].value);
+            //fields[YAW].value = tlmFrame.attitudeFrame.yaw;
+            fields[YAW].available = getCrossfireTelemetryValue(7, 2 , fields[YAW].value);            
             break;
         case CRSF_FRAMETYPE_LINK_STATISTICS:
-            fields[UPLINK_RSSI_1].value = tlmFrame.linkstatisticsFrame.uplink_RSSI_1;
-            fields[UPLINK_RSSI_1].available = true;
-            fields[UPLINK_RSSI_2].value = tlmFrame.linkstatisticsFrame.uplink_RSSI_2;
-            fields[UPLINK_RSSI_2].available = true;
-            fields[UPLINK_LINK_QUALITY].value = tlmFrame.linkstatisticsFrame.uplink_Link_quality;
-            fields[UPLINK_LINK_QUALITY].available = true;
-            fields[UPLINK_SNR].value = tlmFrame.linkstatisticsFrame.uplink_SNR;
-            fields[UPLINK_SNR].available = true;
-            fields[ACTIVE_ANTENNA].value = tlmFrame.linkstatisticsFrame.active_antenna;
-            fields[ACTIVE_ANTENNA].available = true;
-            fields[RF_MODE].value = tlmFrame.linkstatisticsFrame.rf_Mode;
-            fields[RF_MODE].available = true;
-            fields[UPLINK_TX_POWER].value = tlmFrame.linkstatisticsFrame.uplink_TX_Power;
-            fields[UPLINK_TX_POWER].available = true;
-            fields[DOWNLINK_RSSI].value = tlmFrame.linkstatisticsFrame.downlink_RSSI;
-            fields[DOWNLINK_RSSI].available = true;
-            fields[DOWNLINK_LINK_QUALITY].value = tlmFrame.linkstatisticsFrame.downlink_Link_quality;
-            fields[DOWNLINK_LINK_QUALITY].available = true;
-            fields[DOWNLINK_SNR].value = tlmFrame.linkstatisticsFrame.downlink_SNR;
-            fields[DOWNLINK_SNR].available = true; 
+            //fields[UPLINK_RSSI_1].value = tlmFrame.linkstatisticsFrame.uplink_RSSI_1;
+            fields[UPLINK_RSSI_1].available = getCrossfireTelemetryValue(3, 1 , fields[UPLINK_RSSI_1].value);
+            //fields[UPLINK_RSSI_2].value = tlmFrame.linkstatisticsFrame.uplink_RSSI_2;
+            fields[UPLINK_RSSI_2].available = getCrossfireTelemetryValue(4, 1 , fields[UPLINK_RSSI_2].value);
+            //fields[UPLINK_LINK_QUALITY].value = tlmFrame.linkstatisticsFrame.uplink_Link_quality;
+            fields[UPLINK_LINK_QUALITY].available = getCrossfireTelemetryValue(5, 1 , fields[UPLINK_LINK_QUALITY].value);
+            //fields[UPLINK_SNR].value = tlmFrame.linkstatisticsFrame.uplink_SNR;
+            fields[UPLINK_SNR].available = getCrossfireTelemetryValue(6, 1 , fields[UPLINK_SNR].value);
+            //fields[ACTIVE_ANTENNA].value = tlmFrame.linkstatisticsFrame.active_antenna;
+            fields[ACTIVE_ANTENNA].available = getCrossfireTelemetryValue(7, 1 , fields[ACTIVE_ANTENNA].value);
+            //fields[RF_MODE].value = tlmFrame.linkstatisticsFrame.rf_Mode;
+            fields[RF_MODE].available = getCrossfireTelemetryValue(8, 1 , fields[RF_MODE].value);
+            //fields[UPLINK_TX_POWER].value = tlmFrame.linkstatisticsFrame.uplink_TX_Power;
+            fields[UPLINK_TX_POWER].available = getCrossfireTelemetryValue(9, 1 , fields[UPLINK_TX_POWER].value);
+            //fields[DOWNLINK_RSSI].value = tlmFrame.linkstatisticsFrame.downlink_RSSI;
+            fields[DOWNLINK_RSSI].available = getCrossfireTelemetryValue(10, 1 , fields[DOWNLINK_RSSI].value);
+            //fields[DOWNLINK_LINK_QUALITY].value = tlmFrame.linkstatisticsFrame.downlink_Link_quality;
+            fields[DOWNLINK_LINK_QUALITY].available = getCrossfireTelemetryValue(11, 1 , fields[DOWNLINK_LINK_QUALITY].value);
+            //fields[DOWNLINK_SNR].value = tlmFrame.linkstatisticsFrame.downlink_SNR;
+            fields[DOWNLINK_SNR].available = getCrossfireTelemetryValue(12, 1 , fields[DOWNLINK_SNR].value); 
             //printf(" Rf mode %x", tlmFrame.linkstatisticsFrame.rf_Mode);
             break;
         case CRSF_FRAMETYPE_RADIO_ID:
@@ -443,12 +445,28 @@ void storeTlmFrame(){
                 rate = swap_int32(tlmFrame.opentxSyncFrame.rate) / 10 ; // save rate in usec
                 offset = swap_int32(tlmFrame.opentxSyncFrame.offset) / 10 ;// save offset in usec
             }
+            #ifdef DEBUG_FRAME_RADIO_ID
             printf( "tlm=");
             for ( uint8_t i = 0; i < (0X0D+2) ; i++){
                 printf("%X ",tlmFrame.tlmBuffer[i]);
             }
             printf("rate=%i   offset=%i\n", rate , offset );
+            #endif
             break;
     }
 }
 
+bool getCrossfireTelemetryValue(uint8_t index, uint8_t len , int32_t & value)
+{
+  bool result = false;
+  uint8_t * pbyte = & tlmFrame.tlmBuffer[index];
+  value = (*pbyte & 0x80) ? -1 : 0;
+  for (uint8_t i=0; i<len; i++) {
+    value <<= 8;
+    if (*pbyte != 0xff) {
+      result = true;
+    }
+    value += *pbyte++;
+  }
+  return result;
+}
