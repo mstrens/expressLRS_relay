@@ -108,3 +108,6 @@
 45	96	0	C:/Data/expressLRS_relay/build/CMakeFiles/cmake.verify_globs	171eb2ebba1e8499
 136	817	7075259904347514	CMakeFiles/Frsky_Elrs_Relay.dir/src/crsf.cpp.obj	de6642f840e4c5cf
 818	1787	7075259909415306	Frsky_Elrs_Relay.elf	be4bee23efcb7baa
+57	104	0	C:/Data/expressLRS_relay/build/CMakeFiles/cmake.verify_globs	171eb2ebba1e8499
+135	4187	7075633953364892	CMakeFiles/Frsky_Elrs_Relay.dir/src/crsf.cpp.obj	de6642f840e4c5cf
+4188	7706	7075633985063990	Frsky_Elrs_Relay.elf	be4bee23efcb7baa

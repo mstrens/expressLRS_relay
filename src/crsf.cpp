@@ -384,12 +384,16 @@ void storeTlmFrame(){
             fields[LONGITUDE].value = (( ((((uint32_t)( temp < 0 ? -temp : temp)) /10 ) * 6 ) / 10 ) & 0x3FFFFFFF)  | 0x80000000;  
             if(temp < 0) fields[LONGITUDE].value |= 0x40000000;
             
-            //fields[GROUNDSPEED].value = tlmFrame.gpsFrame.groundspeed; //( km/h / 10 )
-            fields[GROUNDSPEED].available = getCrossfireTelemetryValue(11, 2 , fields[GROUNDSPEED].value) ;
-            //fields[HEADING].value = tlmFrame.gpsFrame.heading; //( degree / 100 )
-            fields[HEADING].available = getCrossfireTelemetryValue(13, 2 , fields[HEADING].value) ;
-            //fields[ALTITUDE].value = tlmFrame.gpsFrame.altitude;
-            fields[ALTITUDE].available = getCrossfireTelemetryValue(15, 2 , fields[ALTITUDE].value) ;
+            fields[GROUNDSPEED].available = getCrossfireTelemetryValue(11, 2 , temp) ;
+            fields[GROUNDSPEED].value = (int32_t)(((float) temp ) * 5.4); //( from 0.1 km/h  to 0.01 kts = * 5.4)
+            
+            fields[HEADING].available = getCrossfireTelemetryValue(13, 2 , temp) ;
+            fields[HEADING].value = temp ; //( from 0.01 degree to 0.01 degree )
+            
+
+            fields[ALTITUDE].available = getCrossfireTelemetryValue(15, 2 , temp) ;
+            fields[ALTITUDE].value = (temp - 1000) * 100;  //(from m with offset 1000m to cm)
+            
             //fields[NUMSAT].value = tlmFrame.gpsFrame.numSat;
             fields[NUMSAT].available = getCrossfireTelemetryValue(17, 1 , fields[NUMSAT].value) ;
             break;
@@ -398,22 +402,27 @@ void storeTlmFrame(){
             fields[VSPEED].available = getCrossfireTelemetryValue(3, 2 , fields[VSPEED].value);
             break;
         case CRSF_FRAMETYPE_BATTERY_SENSOR:
-            //fields[MVOLT].value = tlmFrame.voltageFrame.mVolt;
-            fields[MVOLT].available = getCrossfireTelemetryValue(3, 2 , fields[MVOLT].value) ;
-            //fields[CURRENT].value = tlmFrame.voltageFrame.current;
+            fields[MVOLT].available = getCrossfireTelemetryValue(3, 2 , temp) ;
+            fields[MVOLT].value = temp * 10; // from 0.1V to 0.01V
+            
             fields[CURRENT].available = getCrossfireTelemetryValue(5, 2 , fields[CURRENT].value);
+            fields[CURRENT].value = temp * 100; // from 0.1A to 0.001A
+            
             //fields[CAPACITY].value = tlmFrame.voltageFrame.capacity;
             fields[CAPACITY].available = getCrossfireTelemetryValue(7, 3 , fields[CAPACITY].value);
             //fields[REMAIN].value = tlmFrame.voltageFrame.remain;
             fields[REMAIN].available = getCrossfireTelemetryValue(10, 1 , fields[REMAIN].value);
             break;
         case CRSF_FRAMETYPE_ATTITUDE:
-            //fields[PITCH].value = tlmFrame.attitudeFrame.pitch;
-            fields[PITCH].available = getCrossfireTelemetryValue(3, 2 , fields[PITCH].value);
-            //fields[ROLL].value = tlmFrame.attitudeFrame.roll;
-            fields[ROLL].available = getCrossfireTelemetryValue(5, 2 , fields[ROLL].value);
-            //fields[YAW].value = tlmFrame.attitudeFrame.yaw;
-            fields[YAW].available = getCrossfireTelemetryValue(7, 2 , fields[YAW].value);            
+            fields[PITCH].available = getCrossfireTelemetryValue(3, 2 , temp);
+            fields[PITCH].value = (int32_t)(((float) temp ) * 0.00573) ; // from 1/10000 Rad to deg ; so * 0.00573
+            
+            
+            fields[ROLL].available = getCrossfireTelemetryValue(5, 2 , temp);
+            fields[ROLL].value =  (int32_t)(((float) temp ) * 0.00573) ; // from 1/10000 Rad to deg ; so * 0.00573
+            
+            fields[YAW].available = getCrossfireTelemetryValue(7, 2 , temp);            
+            fields[YAW].value = (int32_t)(((float) temp ) * 0.00573) ; // from 1/10000 Rad to deg ; so * 0.00573
             break;
         case CRSF_FRAMETYPE_LINK_STATISTICS:
             //fields[UPLINK_RSSI_1].value = tlmFrame.linkstatisticsFrame.uplink_RSSI_1;
