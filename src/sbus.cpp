@@ -41,6 +41,8 @@ uint8_t runningSbusFrame[24];
 extern rcFrameStruct crsfRcFrame ; // buffer used by crsf.cpp to fill the RC frame sent to ELRS 
 extern bool crsfRcFrameReady ;     // says that a buffer is ready
 
+uint32_t lastSbusReceived = 0;
+
 // RX interrupt handler
 void on_sbus_uart_rx() {
     while (uart_is_readable(SBUS_UART_ID)) {
@@ -108,10 +110,29 @@ void handleSbusIn(){
   }
 }
 
+uint16_t sbusChannelsValue[16]; // 
 
 void storeSbusFrame(){
     memcpy( ( (uint8_t *) &crsfRcFrame) + 3, &runningSbusFrame[1], 22);
     crsfRcFrameReady = true;
+    lastSbusReceived = millis();
+    // 16 Sbus values
+    sbusChannelsValue[0]  = ((runningSbusFrame[1+1]    |runningSbusFrame[2+1]<<8)                 & 0x07FF);
+    sbusChannelsValue[1]  = ((runningSbusFrame[2+1]>>3 |runningSbusFrame[3+1]<<5)                 & 0x07FF);
+    sbusChannelsValue[2]  = ((runningSbusFrame[3+1]>>6 |runningSbusFrame[4+1]<<2 |runningSbusFrame[5+1]<<10)  & 0x07FF);
+    sbusChannelsValue[3]  = ((runningSbusFrame[5+1]>>1 |runningSbusFrame[6+1]<<7)                 & 0x07FF);
+    sbusChannelsValue[4]  = ((runningSbusFrame[6+1]>>4 |runningSbusFrame[7+1]<<4)                 & 0x07FF);
+    sbusChannelsValue[5]  = ((runningSbusFrame[7+1]>>7 |runningSbusFrame[8+1]<<1 |runningSbusFrame[9+1]<<9)   & 0x07FF);
+    sbusChannelsValue[6]  = ((runningSbusFrame[9+1]>>2 |runningSbusFrame[10+1]<<6)                & 0x07FF);
+    sbusChannelsValue[7]  = ((runningSbusFrame[10+1]>>5|runningSbusFrame[11+1]<<3)                & 0x07FF);
+    sbusChannelsValue[8]  = ((runningSbusFrame[12+1]   |runningSbusFrame[13+1]<<8)                & 0x07FF);
+    sbusChannelsValue[9]  = ((runningSbusFrame[13+1]>>3|runningSbusFrame[14+1]<<5)                & 0x07FF);
+    sbusChannelsValue[10] = ((runningSbusFrame[14+1]>>6|runningSbusFrame[15+1]<<2|runningSbusFrame[16+1]<<10) & 0x07FF);
+    sbusChannelsValue[11] = ((runningSbusFrame[16+1]>>1|runningSbusFrame[17+1]<<7)                & 0x07FF);
+    sbusChannelsValue[12] = ((runningSbusFrame[17+1]>>4|runningSbusFrame[18+1]<<4)                & 0x07FF);
+    sbusChannelsValue[13] = ((runningSbusFrame[18+1]>>7|runningSbusFrame[19+1]<<1|runningSbusFrame[20+1]<<9)  & 0x07FF);
+    sbusChannelsValue[14] = ((runningSbusFrame[20+1]>>2|runningSbusFrame[21+1]<<6)                & 0x07FF);
+    sbusChannelsValue[15] = ((runningSbusFrame[21+1]>>5|runningSbusFrame[22+1]<<3)                & 0x07FF);
     //float rc1 = ((runningSbusFrame[1]   |runningSbusFrame[2]<<8) & 0x07FF);
     //printf("rc1 = %f\n", rc1/2);
     //printf("sbus received\n");

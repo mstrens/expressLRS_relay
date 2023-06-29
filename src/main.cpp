@@ -17,22 +17,26 @@
 //#include <Arduino.h>
 #include "pico/stdlib.h"
 #include "pico/util/queue.h"
-#include "config_basic.h"
+#include "config.h"
 #include "crsf.h"
 #include "sbus.h"
 #include "sport.h"
+#include "ppm.h"
 #include "hardware/watchdog.h"
 #include <tusb.h>
 #include <inttypes.h>
 
+#define VERSION "0.0.1"
+
 // to do : in crsf.cpp, handle the synchronisation frame from ELRS (decode it and change interval based on rate and offset)
 
-//     CRSF uses PIO1 with 2 pins. pin 7 for TX and pin 8 for RX;
+//     CRSF uses PIO1 and 2 SM (0 and 1) with 2 pins. pin 7 for TX and pin 8 for RX;
 //          still ELRS module uses half duplex UART with only one pin (the lowest in the JR bay which is normally used for Sport)
 //          So, pin 8 (RX) from RP2040 has to be connected to the lowest pin (Sport) from ELRS Tx module
 //          and pin 7 (TX) from RP2040 has to be connected to pin 8 from RP2040 via a resistor (a value of 1K ohm should be ok)
 //     SBUS uses pin 1 UART0 RX = Serial  
 //     SPORT (TX and RX) uses PIO0 and pin 5; for safety, insert a 1K resistor in serie on the wire to Frsky Sport
+//     PPM use PIO1 and SM 2
 //  the pinout of the ELRS Tx module is the folowing:
 //      - upper pin = ???? not used
 //      - second upper pin = ???? not used 
@@ -60,6 +64,8 @@ void setup() {
   while ( (!tud_cdc_connected()) && (counter--)) { sleep_ms(100);  }
   
   printf("started\n");
+  printf(VERSION); printf("\n");
+
   // setup UART for Sbus (100 kbaud, 8E2)...) (inverted)
   setupSbus(); 
 
@@ -70,6 +76,9 @@ void setup() {
   // setup Sport uart (using pio0, 2 sm, dma, irq, queue)
   // FRSKY is master; it sent a code for polling the different devices once pet 11 msec; only one device can reply 
   setupSport();
+
+  //ppm use a pio to generate the pulses  
+  setupPpm();
   watchdog_enable(500, 1); // require an update once every 500 msec; othsewise, it forces a reboot
 }
 
@@ -91,6 +100,7 @@ void loop() {
   sendCrsfRcFrame();
   handleTlmIn();
   handleSportRxTx();
+  handlePpm();
 }
 
 

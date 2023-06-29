@@ -15,6 +15,9 @@ pico_sdk_init()
 add_executable(Frsky_Elrs_Relay)
 
 pico_generate_pio_header(Frsky_Elrs_Relay  ${CMAKE_CURRENT_LIST_DIR}/src/sport_uart_tx_rx.pio )
+pico_generate_pio_header(Frsky_Elrs_Relay  ${CMAKE_CURRENT_LIST_DIR}/src/crsf_uart_tx_rx.pio )
+pico_generate_pio_header(Frsky_Elrs_Relay  ${CMAKE_CURRENT_LIST_DIR}/src/ppm.pio )
+
 
 file(GLOB Frsky_Elrs_Relay_SRC CONFIGURE_DEPENDS "src/*.h" "src/*.cpp")
 

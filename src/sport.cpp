@@ -155,7 +155,7 @@ void sportPioRxHandlerIrq(){    // when a byte is received on the Sport, read th
 void handleSportRxTx(void){   // main loop : restore receiving mode , wait for tlm request, prepare frame, start pio and dma to transmit it
     static uint8_t previous = 0;
     uint8_t data;
-    if ( restoreSportPioToReceiveMillis) {            // put sm back in recive mode after some delay
+    if ( restoreSportPioToReceiveMillis) {            // put sm back in receive mode after some delay
         if (millis() > restoreSportPioToReceiveMillis){
             sport_uart_tx_program_stop(sportPio, sportSmTx, SPORT_PIO_RX_PIN );
             sport_uart_rx_program_restart(sportPio, sportSmRx, SPORT_PIO_RX_PIN, true);  // true = inverted
@@ -226,6 +226,14 @@ void sendOneSport(uint8_t idx){  // fill one frame and send it
       sportTxBuffer[sportLength++]= tempBuffer[i];
       }
     }
+    #define DEBUG_SPORT
+    #ifdef DEBUG_SPORT
+    printf("Sport Idx= %i val= %i Frame: ", (int) idx , (int) fields[idx].value);
+    for (uint8_t i = 0 ; i < sportLength; i++) {
+        printf(" %2X ", sportTxBuffer[i]);
+    }
+    printf("\n");
+    #endif
     sleep_us(100) ;
     sport_uart_rx_program_stop(sportPio, sportSmRx, SPORT_PIO_RX_PIN); // stop receiving
     sport_uart_tx_program_start(sportPio, sportSmTx, SPORT_PIO_RX_PIN, true); // prepare to transmit

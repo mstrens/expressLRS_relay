@@ -22,7 +22,7 @@
 #include "pico/util/queue.h"
 #include "crsf_uart_tx_rx.pio.h"
 #include "crsf.h"
-#include "config_basic.h"
+#include "config.h"
 #include "crc.h"
 #include "sport.h"
 #include "stdio.h"  // used by printf
@@ -365,6 +365,7 @@ extern field fields[SPORT_TYPES_MAX];
 
 void storeTlmFrame(){
 #ifdef DEBUG_RECEIVED_FRAME    
+    printf("CRSF In : ");
     for (uint8_t i = 0 ; i<(tlmFrame.tlmBuffer[1] +1); i++){
         printf(" %2X ",tlmFrame.tlmBuffer[i] );
     }

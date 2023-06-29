@@ -1,5 +1,7 @@
 C:/Data/expressLRS_relay/build/CMakeFiles/Frsky_Elrs_Relay.dir
 C:/Data/expressLRS_relay/build/CMakeFiles/Frsky_Elrs_Relay_sport_uart_tx_rx_pio_h.dir
+C:/Data/expressLRS_relay/build/CMakeFiles/Frsky_Elrs_Relay_crsf_uart_tx_rx_pio_h.dir
+C:/Data/expressLRS_relay/build/CMakeFiles/Frsky_Elrs_Relay_ppm_pio_h.dir
 C:/Data/expressLRS_relay/build/CMakeFiles/edit_cache.dir
 C:/Data/expressLRS_relay/build/CMakeFiles/rebuild_cache.dir
 C:/Data/expressLRS_relay/build/pico-sdk/CMakeFiles/edit_cache.dir
