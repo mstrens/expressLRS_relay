@@ -395,24 +395,25 @@ void storeTlmFrame(){
             fields[ALTITUDE].available = getCrossfireTelemetryValue(15, 2 , temp) ;
             fields[ALTITUDE].value = (temp - 1000) * 100;  //(from m with offset 1000m to cm)
             
-            //fields[NUMSAT].value = tlmFrame.gpsFrame.numSat;
-            fields[NUMSAT].available = getCrossfireTelemetryValue(17, 1 , fields[NUMSAT].value) ;
+            fields[NUMSAT].available = getCrossfireTelemetryValue(17, 1 , temp) ;
+            fields[NUMSAT].value = temp;
             break;
         case CRSF_FRAMETYPE_VARIO:
-            //fields[VSPEED].value = tlmFrame.varioFrame.vSpeed;
-            fields[VSPEED].available = getCrossfireTelemetryValue(3, 2 , fields[VSPEED].value);
+            fields[VSPEED].available = getCrossfireTelemetryValue(3, 2 , temp);
+            fields[VSPEED].value = temp;
             break;
         case CRSF_FRAMETYPE_BATTERY_SENSOR:
             fields[MVOLT].available = getCrossfireTelemetryValue(3, 2 , temp) ;
             fields[MVOLT].value = temp * 10; // from 0.1V to 0.01V
             
-            fields[CURRENT].available = getCrossfireTelemetryValue(5, 2 , fields[CURRENT].value);
+            fields[CURRENT].available = getCrossfireTelemetryValue(5, 2 , temp);
             fields[CURRENT].value = temp * 100; // from 0.1A to 0.001A
             
-            //fields[CAPACITY].value = tlmFrame.voltageFrame.capacity;
-            fields[CAPACITY].available = getCrossfireTelemetryValue(7, 3 , fields[CAPACITY].value);
-            //fields[REMAIN].value = tlmFrame.voltageFrame.remain;
-            fields[REMAIN].available = getCrossfireTelemetryValue(10, 1 , fields[REMAIN].value);
+            fields[CAPACITY].available = getCrossfireTelemetryValue(7, 3 , temp);
+            fields[CAPACITY].value = temp; 
+            
+            fields[REMAIN].available = getCrossfireTelemetryValue(10, 1 , temp);
+            fields[REMAIN].value = temp;
             break;
         case CRSF_FRAMETYPE_ATTITUDE:
             fields[PITCH].available = getCrossfireTelemetryValue(3, 2 , temp);

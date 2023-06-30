@@ -16,6 +16,8 @@
 
 #pragma once
 
+#include <inttypes.h>
+
 //#include "Arduino.h"
 
 #define SPORT_TYPES_MAX 24
