@@ -1,6 +1,6 @@
 # ninja log v5
 9571	10317	7074369676635768	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/pico_float/float_init_rom.c.obj	b571e6bb6626fb7c
-428	530	0	C:/Data/expressLRS_relay/build/CMakeFiles/cmake.verify_globs	171eb2ebba1e8499
+62	98	0	C:/Data/expressLRS_relay/build/CMakeFiles/cmake.verify_globs	171eb2ebba1e8499
 78	295	7074369577665856	sport_uart_tx_rx.pio.h	c71f11f37775d915
 78	295	7074369577665856	C:/Data/expressLRS_relay/build/sport_uart_tx_rx.pio.h	c71f11f37775d915
 10317	11190	7074369685920052	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/pico_mem_ops/mem_ops_aeabi.S.obj	4edbfc73fd9cc898
@@ -15,7 +15,7 @@
 8253	8929	7074369663563827	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/pico_divider/divider.S.obj	144ed13670c5b68d
 1901	2903	7074369603101064	CMakeFiles/Frsky_Elrs_Relay.dir/src/crc.cpp.obj	e7ea3488080efbd7
 145	816	7076827002355455	CMakeFiles/Frsky_Elrs_Relay.dir/src/sbus.cpp.obj	789cbd4ce821d054
-217	1010	7076907621296954	CMakeFiles/Frsky_Elrs_Relay.dir/src/main.cpp.obj	7915935cdb8ff394
+135	4683	7098103864380111	CMakeFiles/Frsky_Elrs_Relay.dir/src/main.cpp.obj	7915935cdb8ff394
 5504	6652	7074369640448060	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/common/pico_util/datetime.c.obj	723e2bc4491aba9d
 9513	10024	7074369674017382	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/pico_float/float_aeabi.S.obj	f2a42e224667267e
 5938	7312	7074369647043999	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/common/pico_util/queue.c.obj	3fc364da846dbecf
@@ -27,9 +27,9 @@
 2903	4112	7074369615113667	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/pico_stdlib/stdlib.c.obj	dcac8ba194387666
 5414	6423	7074369638009590	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/common/pico_time/timeout_helper.c.obj	23cf7f7cf204cf76
 10024	11315	7074369686489695	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/pico_malloc/pico_malloc.c.obj	465523be7944e2a0
-692	12543	7097284246588703	CMakeFiles/Frsky_Elrs_Relay.dir/src/sport.cpp.obj	a84ba1f5cdba3fbe
+147	4680	7098103864380111	CMakeFiles/Frsky_Elrs_Relay.dir/src/sport.cpp.obj	a84ba1f5cdba3fbe
 11191	12007	7074369694394836	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/pico_standard_link/binary_info.c.obj	580891d7a26efe6c
-622	12544	7097284246588703	CMakeFiles/Frsky_Elrs_Relay.dir/src/crsf.cpp.obj	de6642f840e4c5cf
+127	4682	7098103864380111	CMakeFiles/Frsky_Elrs_Relay.dir/src/crsf.cpp.obj	de6642f840e4c5cf
 3619	4523	7074369619311083	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/pico_platform/platform.c.obj	d2fcfd7fe3e5d660
 6423	7506	7074369648802918	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/hardware_uart/uart.c.obj	4bcce97c011c62
 4113	4809	7074369622269254	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/hardware_sync/sync.c.obj	58f42faa2b285f10
@@ -63,7 +63,7 @@
 10712	11272	7074369686279835	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/pico_standard_link/crt0.S.obj	5a383fd671c5e2ba
 10724	11659	7074369690777058	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/pico_standard_link/new_delete.cpp.obj	ca650a93f1a266ba
 11315	12556	7074369699861482	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/pico_stdio_usb/stdio_usb.c.obj	a07942f9405ebe0b
-85	2144	7098102337537639	build.ninja	dcdead35a6f54aa9
+85	2144	7099055325963564	build.ninja	dcdead35a6f54aa9
 11286	12617	7074369700191273	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/pico_stdio_usb/reset_interface.c.obj	cf2e15c93778f334
 11660	12966	7074369703079490	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/pico_stdio_usb/stdio_usb_descriptors.c.obj	613e6e76867779eb
 12842	13676	7074369710424970	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/lib/tinyusb/src/class/audio/audio_device.c.obj	f994ef2c299c887f
@@ -92,12 +92,10 @@
 18749	19616	7074369770567621	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/hardware_adc/adc.c.obj	8e77cccbd0c8d92c
 18736	19669	7074369771197229	CMakeFiles/Frsky_Elrs_Relay.dir/C_/Program_Files/Raspberry_Pi/Pico_SDK_v1.5.0/pico-sdk/src/rp2_common/hardware_dma/dma.c.obj	71ae78053087a247
 94	204	7076907613241941	C:/Data/expressLRS_relay/build/crsf_uart_tx_rx.pio.h	ee1122f6c3d10319
-12548	20101	7097284317678974	Frsky_Elrs_Relay.elf	7f81907d3dc8c134
+4683	7813	7098103890828024	Frsky_Elrs_Relay.elf	7f81907d3dc8c134
 680	12547	7097284246588703	CMakeFiles/Frsky_Elrs_Relay.dir/src/ppm.cpp.obj	70cc4d749e0534db
 94	204	7076907613241941	crsf_uart_tx_rx.pio.h	ee1122f6c3d10319
 93	133	7076909264133031	ppm.pio.h	516baa3a839e004e
-62	98	0	C:/Data/expressLRS_relay/build/CMakeFiles/cmake.verify_globs	171eb2ebba1e8499
-147	4680	7098103864380111	CMakeFiles/Frsky_Elrs_Relay.dir/src/sport.cpp.obj	a84ba1f5cdba3fbe
-127	4682	7098103864380111	CMakeFiles/Frsky_Elrs_Relay.dir/src/crsf.cpp.obj	de6642f840e4c5cf
-135	4683	7098103864380111	CMakeFiles/Frsky_Elrs_Relay.dir/src/main.cpp.obj	7915935cdb8ff394
-4683	7813	7098103890828024	Frsky_Elrs_Relay.elf	7f81907d3dc8c134
+37	74	0	C:/Data/expressLRS_relay/build/CMakeFiles/cmake.verify_globs	171eb2ebba1e8499
+105	1521	7099065075278481	CMakeFiles/Frsky_Elrs_Relay.dir/src/crsf.cpp.obj	de6642f840e4c5cf
+1522	4367	7099065099200517	Frsky_Elrs_Relay.elf	7f81907d3dc8c134

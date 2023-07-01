@@ -407,7 +407,7 @@ void storeTlmFrame(){
             fields[MVOLT].value = temp * 10; // from 0.1V to 0.01V
             
             fields[CURRENT].available = getCrossfireTelemetryValue(5, 2 , temp);
-            fields[CURRENT].value = temp * 100; // from 0.1A to 0.001A
+            fields[CURRENT].value = temp ; // from 0.1A to 0.1A
             
             fields[CAPACITY].available = getCrossfireTelemetryValue(7, 3 , temp);
             fields[CAPACITY].value = temp; 
